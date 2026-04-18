@@ -67,7 +67,7 @@ const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
 
 let currentUser = null;
-let notificationsByUser = {};
+
 let selectedImageData = "";
 let activePostId = null;
 let posts = [];
@@ -88,7 +88,7 @@ const profileKeywords = {
   skin: "@Alexei",
   ded: "@Sabrina",
   ghost: "@Sarah",
-  revived: "@Deidre"
+  revived: "@Deirdre"
 
 
  
@@ -215,7 +215,6 @@ const users = Object.keys(bios);
 function saveLocalData() {
   try {
     localStorage.setItem("dragon_bios", JSON.stringify(bios));
-    localStorage.setItem("dragon_notifications_by_user", JSON.stringify(notificationsByUser));
     localStorage.setItem("dragon_currentUser", currentUser || "");
   } catch (error) {
     console.error("Could not save local data:", error);
@@ -225,7 +224,6 @@ function saveLocalData() {
 function loadLocalData() {
   try {
     const savedBios = localStorage.getItem("dragon_bios");
-    const savedNotificationsByUser = localStorage.getItem("dragon_notifications_by_user");
     const savedCurrentUser = localStorage.getItem("dragon_currentUser");
 
     if (savedBios) {
@@ -237,13 +235,6 @@ function loadLocalData() {
       }
     }
 
-    if (savedNotificationsByUser) {
-      const parsedNotifications = JSON.parse(savedNotificationsByUser);
-      if (parsedNotifications && typeof parsedNotifications === "object") {
-        notificationsByUser = parsedNotifications;
-      }
-    }
-
     if (savedCurrentUser) {
       currentUser = savedCurrentUser;
     }
@@ -252,110 +243,9 @@ function loadLocalData() {
   }
 }
 
-function updateNotificationCount() {
-  if (!notifCount) return;
 
-  const myNotifications = getCurrentUserNotifications();
-  const unreadCount = myNotifications.filter((notif) => !notif.read).length;
-  notifCount.textContent = unreadCount;
-}
 
-function addNotification(targetUser, message, postId = null, type = "general") {
-  if (!targetUser) return;
 
-  if (!notificationsByUser[targetUser]) {
-    notificationsByUser[targetUser] = [];
-  }
-
-  notificationsByUser[targetUser].unshift({
-    id: Date.now() + Math.random(),
-    text: message,
-    postId: postId,
-    type: type,
-    createdAt: Date.now(),
-    read: false
-  });
-
-  saveLocalData();
-
-  if (currentUser === targetUser) {
-    updateNotificationCount();
-  }
-}
-function getCurrentUserNotifications() {
-  if (!currentUser) return [];
-  if (!notificationsByUser[currentUser]) {
-    notificationsByUser[currentUser] = [];
-  }
-  return notificationsByUser[currentUser];
-}
-function openNotifications() {
-  if (!notifModal || !notifList) return;
-
-  const myNotifications = getCurrentUserNotifications();
-  notifList.innerHTML = "";
-
-  if (myNotifications.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "comment";
-    empty.textContent = "No notifications yet.";
-    notifList.appendChild(empty);
-  } else {
-    myNotifications.forEach((notif) => {
-      const div = document.createElement("button");
-      div.type = "button";
-      div.className = "comment notif-item";
-      div.style.cursor = notif.postId ? "pointer" : "default";
-      div.style.border = "none";
-      div.style.width = "100%";
-      div.style.textAlign = "left";
-      div.style.background = "#f9fafb";
-      div.style.padding = "12px 14px 12px 18px";
-      div.style.position = "relative";
-      div.style.overflow = "hidden";
-      div.style.borderRadius = "14px";
-
-      if (!notif.read) {
-        const marker = document.createElement("span");
-        marker.style.position = "absolute";
-        marker.style.left = "0";
-        marker.style.top = "0";
-        marker.style.bottom = "0";
-        marker.style.width = "4px";
-        marker.style.background = "#7c3aed";
-        marker.style.pointerEvents = "none";
-        div.appendChild(marker);
-      }
-
-      const text = document.createElement("div");
-      text.textContent = notif.text;
-
-      const time = document.createElement("div");
-      time.style.fontSize = "12px";
-      time.style.opacity = "0.7";
-      time.style.marginTop = "4px";
-      time.textContent = formatTime(notif.createdAt);
-
-      div.appendChild(text);
-      div.appendChild(time);
-
-      div.addEventListener("click", function (e) {
-        e.stopPropagation();
-
-        if (notif.postId) {
-          openNotificationTarget(notif.id);
-        } else {
-          markNotificationAsRead(notif.id);
-          closeNotifications();
-        }
-      });
-
-      notifList.appendChild(div);
-    });
-  }
-
-  notifModal.classList.remove("hidden");
-}
 
 function closeNotifications() {
   if (notifModal) {
@@ -363,34 +253,8 @@ function closeNotifications() {
   }
 }
 
-function markNotificationAsRead(notificationId) {
-  const myNotifications = getCurrentUserNotifications();
-  const notif = myNotifications.find((n) => n.id === notificationId);
-  if (!notif) return;
 
-  notif.read = true;
-  saveLocalData();
-  updateNotificationCount();
-}
 
-function openNotificationTarget(notificationId) {
-  const myNotifications = getCurrentUserNotifications();
-  const notif = myNotifications.find((n) => n.id === notificationId);
-  if (!notif) return;
-
-  markNotificationAsRead(notificationId);
-  closeNotifications();
-
-  if (!notif.postId) return;
-
-  const targetPost = posts.find((p) => String(p.id) === String(notif.postId));
-  if (!targetPost) {
-    alert("That post could not be found.");
-    return;
-  }
-
-  openPostView(targetPost);
-}
 
 
 
@@ -463,7 +327,7 @@ async function signInWithKeyword() {
   saveLocalData();
   hideLoginScreen();
   refreshMainProfileUI();
-  updateNotificationCount();
+  await updateNotificationCount();
   await loadPostsFromSupabase();
 
   if (loginMessage) loginMessage.textContent = "";
@@ -703,6 +567,170 @@ async function loadPostsFromSupabase() {
 
   renderPosts();
 }
+async function addNotification(targetUser, message, postId = null, type = "general") {
+  if (!targetUser) return;
+
+  const { error } = await supabase.from("notifications").insert({
+    target_user: targetUser,
+    actor_user: currentUser,
+    text: message,
+    post_id: postId,
+    type: type,
+    read: false,
+    created_at: Date.now()
+  });
+
+  if (error) {
+    console.error("Could not add notification:", error.message);
+    return;
+  }
+
+  if (currentUser === targetUser) {
+    await updateNotificationCount();
+  }
+}
+
+async function getCurrentUserNotifications() {
+  if (!currentUser) return [];
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("target_user", currentUser)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Could not load notifications:", error.message);
+    return [];
+  }
+
+  return data || [];
+}
+async function updateNotificationCount() {
+  if (!notifCount || !currentUser) return;
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: false })
+    .eq("target_user", currentUser)
+    .eq("read", false);
+
+  if (error) {
+    console.error("Could not count notifications:", error.message);
+    notifCount.textContent = "0";
+    return;
+  }
+
+  notifCount.textContent = data ? String(data.length) : "0";
+}
+
+async function openNotifications() {
+  if (!notifModal || !notifList) return;
+
+  const myNotifications = await getCurrentUserNotifications();
+  notifList.innerHTML = "";
+
+  if (myNotifications.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "comment";
+    empty.textContent = "No notifications yet.";
+    notifList.appendChild(empty);
+  } else {
+    myNotifications.forEach((notif) => {
+      const div = document.createElement("button");
+      div.type = "button";
+      div.className = "comment notif-item";
+      div.style.cursor = notif.post_id ? "pointer" : "default";
+      div.style.border = "none";
+      div.style.width = "100%";
+      div.style.textAlign = "left";
+      div.style.background = "#f9fafb";
+      div.style.padding = "12px 14px 12px 18px";
+      div.style.position = "relative";
+      div.style.overflow = "hidden";
+      div.style.borderRadius = "14px";
+
+      if (!notif.read) {
+        const marker = document.createElement("span");
+        marker.style.position = "absolute";
+        marker.style.left = "0";
+        marker.style.top = "0";
+        marker.style.bottom = "0";
+        marker.style.width = "4px";
+        marker.style.background = "#7c3aed";
+        marker.style.pointerEvents = "none";
+        div.appendChild(marker);
+      }
+
+      const text = document.createElement("div");
+      text.textContent = notif.text;
+
+      const time = document.createElement("div");
+      time.style.fontSize = "12px";
+      time.style.opacity = "0.7";
+      time.style.marginTop = "4px";
+      time.textContent = formatTime(notif.created_at);
+
+      div.appendChild(text);
+      div.appendChild(time);
+
+      div.addEventListener("click", async function (e) {
+        e.stopPropagation();
+
+        if (notif.post_id) {
+          await openNotificationTarget(notif.id);
+        } else {
+          await markNotificationAsRead(notif.id);
+          closeNotifications();
+        }
+      });
+
+      notifList.appendChild(div);
+    });
+  }
+
+  notifModal.classList.remove("hidden");
+}
+
+async function markNotificationAsRead(notificationId) {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("id", notificationId);
+
+  if (error) {
+    console.error("Could not mark notification as read:", error.message);
+    return;
+  }
+
+  await updateNotificationCount();
+}
+async function openNotificationTarget(notificationId) {
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("id", notificationId)
+    .single();
+
+  if (error || !data) {
+    console.error("Could not load notification target:", error?.message);
+    return;
+  }
+
+  await markNotificationAsRead(notificationId);
+  closeNotifications();
+
+  if (!data.post_id) return;
+
+  const targetPost = posts.find((p) => String(p.id) === String(data.post_id));
+  if (!targetPost) {
+    alert("That post could not be found.");
+    return;
+  }
+
+  openPostView(targetPost);
+}
+
 
 async function addPostToSupabase(newPost) {
   const { error } = await supabase.from("posts").insert({
@@ -993,13 +1021,12 @@ function renderPosts() {
         if (!ok) return;
 
         if (post.username !== currentUser) {
-  addNotification(
+  await addNotification(
   post.username,
   `${currentUser} liked your post`,
   post.id,
   "like"
 );
-}
 
         await loadPostsFromSupabase();
 
@@ -1036,7 +1063,7 @@ function renderPosts() {
         if (!ok) return;
 
         if (post.username !== currentUser) {
-  addNotification(
+  await addNotification(
     post.username,
     `${currentUser} commented on your post`,
     post.id,
@@ -1046,13 +1073,13 @@ function renderPosts() {
 
 const notifiedUsers = new Set();
 
-post.comments.forEach((comment) => {
+for (const comment of post.comments) {
   if (
     comment.user !== currentUser &&
     comment.user !== post.username &&
     !notifiedUsers.has(comment.user)
   ) {
-    addNotification(
+    await addNotification(
       comment.user,
       `${currentUser} also commented on a post you're in`,
       post.id,
@@ -1060,7 +1087,7 @@ post.comments.forEach((comment) => {
     );
     notifiedUsers.add(comment.user);
   }
-});
+}
 
         saveLocalData();
         await loadPostsFromSupabase();
@@ -1349,7 +1376,7 @@ if (postViewCommentInput) {
 
 async function startApp() {
   loadLocalData();
-  updateNotificationCount();
+  await updateNotificationCount();
   subscribeToPostChanges();
 
   if (currentUser && bios[currentUser]) {
