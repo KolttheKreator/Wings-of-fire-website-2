@@ -1306,6 +1306,8 @@ async function startApp() {
       loginMessage.textContent = "";
     }
   }
+
+  await startRoleplayLive();
 }
 
 startApp();
@@ -1357,9 +1359,9 @@ if (italicBtn) {
 }
 let docs = [
   {
-    id: 1,
-    title: "Doc 1",
-    content: "<h1>🐉 Roleplay Zone</h1><p>Start your story here...</p>"
+    id: "REAL-SUPABASE-UUID-HERE",
+    title: "Main RP Doc",
+    content: ""
   }
 ];
 
@@ -1485,6 +1487,167 @@ if (highlightColorPicker) {
     formatText("hiliteColor", highlightColorPicker.value);
   });
 }
+
+const rpPresenceBar = document.getElementById("rpPresenceBar");
+
+let currentRoleplayDocId = "PASTE-YOUR-DOC-ID-HERE";
+let rpChannel = null;
+let rpSaveTimer = null;
+let isApplyingRemoteUpdate = false;
+async function loadRoleplayDoc(docId) {
+  const { data, error } = await supabase
+    .from("roleplay_docs")
+    .select("id, title, content")
+    .eq("id", docId)
+    .single();
+
+  if (error) {
+    console.error("Could not load RP doc:", error);
+    return;
+  }
+
+  if (roleplayEditor) {
+    roleplayEditor.innerHTML = data.content || "";
+  }
+}
+
+
+async function saveRoleplayDoc(docId, content) {
+  const { error } = await supabase
+    .from("roleplay_docs")
+    .update({
+      content,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", docId);
+
+  if (error) {
+    console.error("Could not save RP doc:", error);
+  }
+}
+
+function updateRoleplayPresenceUI() {
+  if (!rpChannel || !rpPresenceBar) return;
+
+  const state = rpChannel.presenceState();
+  const users = Object.values(state)
+    .flat()
+    .map((entry) => entry.user)
+    .filter(Boolean);
+
+  if (users.length === 0) {
+    rpPresenceBar.textContent = "Nobody here yet";
+    return;
+  }
+
+  rpPresenceBar.textContent = "Editing now: " + users.join(", ");
+}
+
+
+function joinRoleplayChannel(docId) {
+  if (rpChannel) {
+    supabase.removeChannel(rpChannel);
+    rpChannel = null;
+  }
+
+  rpChannel = supabase.channel(`rp-doc-${docId}`);
+
+  rpChannel
+    .on("broadcast", { event: "doc-update" }, ({ payload }) => {
+      if (!payload) return;
+      if (payload.sender === currentUser) return;
+      if (!roleplayEditor) return;
+
+      isApplyingRemoteUpdate = true;
+      roleplayEditor.innerHTML = payload.content || "";
+      isApplyingRemoteUpdate = false;
+    })
+    .on("presence", { event: "sync" }, () => {
+      updateRoleplayPresenceUI();
+    })
+    .on("presence", { event: "join" }, () => {
+      updateRoleplayPresenceUI();
+    })
+    .on("presence", { event: "leave" }, () => {
+      updateRoleplayPresenceUI();
+    })
+    .subscribe(async (status) => {
+      console.log("RP channel status:", status);
+
+      if (status === "SUBSCRIBED") {
+        await rpChannel.track({
+          user: currentUser || "Guest",
+          online_at: new Date().toISOString()
+        });
+      }
+    });
+}
+
+function broadcastRoleplayUpdate() {
+  if (!rpChannel || !roleplayEditor || !currentRoleplayDocId) return;
+  if (isApplyingRemoteUpdate) return;
+
+  const content = roleplayEditor.innerHTML;
+
+  rpChannel.send({
+    type: "broadcast",
+    event: "doc-update",
+    payload: {
+      docId: currentRoleplayDocId,
+      content,
+      sender: currentUser || "Guest"
+    }
+  });
+
+  clearTimeout(rpSaveTimer);
+  rpSaveTimer = setTimeout(() => {
+    saveRoleplayDoc(currentRoleplayDocId, content);
+  }, 1000);
+}
+if (roleplayEditor) {
+  roleplayEditor.addEventListener("input", () => {
+    broadcastRoleplayUpdate();
+  });
+}
+
+async function startRoleplayLive() {
+  if (!roleplayEditor || !currentRoleplayDocId) return;
+
+  await loadRoleplayDoc(currentRoleplayDocId);
+  joinRoleplayChannel(currentRoleplayDocId);
+}
+
+async function createNewTab() {
+  const newNumber = docs.length + 1;
+
+  const { data, error } = await supabase
+    .from("roleplay_docs")
+    .insert({
+      title: "Doc " + newNumber,
+      content: "<h1>New Roleplay Doc</h1><p>Write something legendary...</p>"
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Could not create new RP doc:", error);
+    return;
+  }
+
+  docs.push({
+    id: data.id,
+    title: data.title,
+    content: data.content
+  });
+
+  activeDocId = data.id;
+  currentRoleplayDocId = data.id;
+
+  await loadRoleplayDoc(data.id);
+  joinRoleplayChannel(data.id);
+  renderTabs();
+}
+
 
 renderTabs();
 openDoc(activeDocId);

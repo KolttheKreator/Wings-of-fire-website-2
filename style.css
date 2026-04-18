@@ -947,3 +947,12 @@ body.modal-open {
 .area-switcher:hover {
   background: white;
 }
+.rp-presence-bar {
+  width: 920px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
