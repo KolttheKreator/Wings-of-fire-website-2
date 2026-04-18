@@ -1186,7 +1186,35 @@ if (notifBtn) {
     }
   });
 }
+let postsChannel = null;
 
+function subscribeToPostChanges() {
+  if (postsChannel) return;
+
+  postsChannel = supabase
+    .channel("public-posts-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "posts"
+      },
+      async () => {
+        await loadPostsFromSupabase();
+
+        if (activePostId) {
+          const updatedPost = posts.find((p) => p.id === activePostId);
+          if (updatedPost) {
+            openPostView(updatedPost);
+          }
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log("Supabase live status:", status);
+    });
+}
 if (closeNotifBtn) {
   closeNotifBtn.addEventListener("click", closeNotifications);
 }
@@ -1258,6 +1286,7 @@ if (postViewCommentInput) {
 async function startApp() {
   loadLocalData();
   updateNotificationCount();
+  subscribeToPostChanges();
   await loadPostsFromSupabase();
 
   if (currentUser && bios[currentUser]) {
@@ -1277,8 +1306,9 @@ async function startApp() {
     }
   }
 }
-localStorage.removeItem("dragon_currentUser");
-currentUser = null;
+
+
+
 startApp();
 const areaSelect = document.getElementById("areaSelect");
 const feedArea = document.getElementById("feedArea");
