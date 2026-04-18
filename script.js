@@ -73,14 +73,25 @@ let activePostId = null;
 let posts = [];
 
 const profileKeywords = {
-  fox: "@Kolt",
-  wing: "@Jay",
-  nova: "@Nova",
-  sketch: "@Aanya",
-  sugar: "@Savannah",
-  funny: "@Olivia",
-  chaos: "@Wyatt",
-  loki: "@Cathy"
+  Kraken: "@Kolt",
+  Wing: "@Jay",
+  Nova: "@Nova",
+  Sketch: "@Aanya",
+  Sugar: "@Savannah",
+  Funny: "@Olivia",
+  Chaos: "@Wyatt",
+  Loki: "@Cathy"
+  Rumi: "@Kaiju"
+  Cool: "@Cae"
+  Blunt: "@Kadence"
+  Duck: "@Donnie"
+  Skin: "@Alexei"
+  Ded: "@Sabrina"
+  Ghost: "@Sarah"
+  Revived: "@Deidre"
+  
+
+ 
 };
 
 const bios = {
@@ -92,25 +103,9 @@ const bios = {
     tag: "Creator",
     image: ""
   },
-  "@Jay": {
-    letter: "J",
-    role: "Wing Expert",
-    bio: "Always notices anatomy details first and has strong opinions about wings.",
-    likes: "Sketching, dragons, lore",
-    tag: "Artist",
-    image: ""
-  },
-  "@Nova": {
-    letter: "N",
-    role: "Color Wizard",
-    bio: "Makes OC palettes and art ideas like a machine.",
-    likes: "Color palettes, OCs, art",
-    tag: "Designer",
-    image: ""
-  },
   "@Aanya": {
     letter: "A",
-    role: "Master Sketcher",
+    role: "Master Sketcher", 
     bio: "Very good at sketching. Super fun to speak with.",
     likes: "Sketching, dragons, lore, chatting",
     tag: "Artist",
@@ -119,7 +114,7 @@ const bios = {
   "@Savannah": {
     letter: "S",
     role: "Sugar Rush Queen",
-    bio: "Always on a sugar rush.",
+    bio: "Always on a sugar rush. Christian. I disagree with her (This Bio has been written by Coding_Crow or Wyatt. AND YOU CAN'T DO ANYTHING ABOUT IT MUAHAHAHA)",
     likes: "OCs, roleplay, chaos",
     tag: "SUGAR RUSH",
     image: ""
@@ -143,12 +138,77 @@ const bios = {
   "@Cathy": {
     letter: "C",
     role: "Smart One",
-    bio: "The smart one. Also called Lokidottir, much to her annoyance.",
+    bio: "The smart one. Also called Lokidottir, much to   her annoyance.",
     likes: "Debating",
-    tag: "The Lokidottir",
+    tag: "The Lokidottir",   
+    image: ""
+  },
+  "@Kaiju": {
+    letter: "K",
+    role: "Le Kaiju",
+    bio: "The crazy one, THE KAIJU, QUEEN OF THE TERRORS!!",
+    likes: "Coding_Crow Wyatt, art, Kolt",
+    tag: "KAIJU",
+    image: ""
+  }, 
+  "@Cae": {
+    letter: "C",
+    role: "Quiet Nice Kid",
+    bio: "Loves doing art, RPing, and making OCs",
+    likes: "Art",
+    tag: "Quiet Guy",
+    image: ""
+  },
+  "@Kadence": {
+    letter: "KK",
+    role: "The Blunt",
+    bio: "Blunt lil banana",
+    likes: "OCs",
+    tag: "Blunt",
+    image: ""
+  },
+  "@Sarah": {
+    letter: "S",
+    role: "Yapper",
+    bio: "Sister to the Duck Snake, presenting... THE YAPPER!!",
+    likes: "art, yapping",
+    tag: "yapper",
+    image: ""
+  },
+  "@Deirdre": {
+    letter: "D",
+    role: "The legend!",
+    bio: "The woman, the myth, the legend, HUFFLEPUFF DEIRDRE!!!!",
+    likes: "DL, everyone in DL, Art",
+    tag: "EEEEEEEEEEEEEEEEEEEEEEEEEEEE SO HAPPY",
+    image: ""
+  },
+  "@Donnie": {
+    letter: "DD",
+    role: "The Duck Snake",
+    bio: "THE GREAT DUCK SNAKE",
+    likes: "Funny stuff",
+    tag: "Duck Snake",
+    image: ""
+  },
+  "@Alexei": {
+    letter: "AA",
+    role: "He/They",
+    bio: "The rarely-seen author",
+    likes: "Writing",
+    tag: "Author",
+    image: ""
+  },
+  "@Sabrina": {
+    letter: "S",
+    role: "The dead one",
+    bio: "The one in the graveyard. Actually, why the heck am I making a profile for her?",
+    likes: "Being Dead",
+    tag: "Ded",
     image: ""
   }
 };
+
 
 const users = Object.keys(bios);
 
