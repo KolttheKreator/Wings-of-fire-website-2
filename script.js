@@ -1288,7 +1288,6 @@ async function startApp() {
   loadLocalData();
   updateNotificationCount();
   subscribeToPostChanges();
-  await loadPostsFromSupabase();
 
   if (currentUser && bios[currentUser]) {
     hideLoginScreen();
@@ -1307,6 +1306,7 @@ async function startApp() {
     }
   }
 
+  await loadPostsFromSupabase();
   await startRoleplayLive();
 }
 
