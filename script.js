@@ -80,16 +80,16 @@ const profileKeywords = {
   Sugar: "@Savannah",
   Funny: "@Olivia",
   Chaos: "@Wyatt",
-  Loki: "@Cathy"
-  Rumi: "@Kaiju"
-  Cool: "@Cae"
-  Blunt: "@Kadence"
-  Duck: "@Donnie"
-  Skin: "@Alexei"
-  Ded: "@Sabrina"
-  Ghost: "@Sarah"
+  Loki: "@Cathy",
+  Rumi: "@Kaiju",
+  Cool: "@Cae",
+  Blunt: "@Kadence",
+  Duck: "@Donnie",
+  Skin: "@Alexei",
+  Ded: "@Sabrina",
+  Ghost: "@Sarah",
   Revived: "@Deidre"
-  
+
 
  
 };
