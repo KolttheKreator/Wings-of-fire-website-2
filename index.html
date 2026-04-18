@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dragon Community</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <h2>Enter Your Keyword</h2>
+      <input id="keywordInput" type="password" placeholder="Enter keyword" />
+      <button id="loginKeywordBtn" class="post-btn" type="button">Sign In</button>
+      <p id="loginMessage"></p>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="hero-overlay">
+      <nav class="top-bar">
+        <div class="logo-wrap">
+          <div class="logo-icon">🐉</div>
+          <div class="logo-text">Dragon Community</div>
+        </div>
+        
+
+        <div class="top-right">
+
+  <select id="areaSelect" class="area-switcher">
+    <option value="feedArea">Feed</option>
+    <option value="roleplayingArea">Roleplaying</option>
+  </select>
+
+  <button id="notifBtn" class="icon-btn" type="button">
+    🔔 <span id="notifCount" class="notif-badge">0</span>
+  </button>
+
+  <button id="logoutBtn" class="icon-btn" type="button">🚪 Log Out</button>
+
+  <button id="topAvatar" class="profile-pill profile-button" type="button">
+    <span id="topAvatarLetter">K</span>
+  </button>
+
+</div>
+      </nav>
+
+      <div class="group-info">
+        <div class="group-avatar">🔥</div>
+        <div>
+          <h1>The Dragon's Lair</h1>
+          <p>Art, roleplay, OCs, builds, and chaos.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" id="feedArea">
+    <section class="toolbar">
+      <div class="create-post-box">
+        <div class="mini-avatar" id="postAvatar">
+          <span id="postAvatarLetter">K</span>
+        </div>
+
+        <div class="create-fields">
+          <div class="mention-wrap">
+            <input id="postText" type="text" placeholder="Create a post title... try @Jay or @Nova" />
+            <div id="mentionList" class="mention-list hidden"></div>
+          </div>
+
+          <textarea
+            id="postDescription"
+            class="post-description-input"
+            placeholder="Write a description for your post..."
+          ></textarea>
+
+          <div class="file-row">
+            <label for="fileInput" class="file-btn">Add File</label>
+            <input id="fileInput" type="file" accept="image/*" hidden />
+            <span id="fileName" class="file-name">No file chosen</span>
+          </div>
+        </div>
+
+        <button id="postBtn" class="post-btn" type="button">Post</button>
+      </div>
+
+      <div class="tool-actions">
+        <select id="sortSelect" class="sort-box">
+          <option value="recent">Most recent</option>
+          <option value="liked">Most liked</option>
+          <option value="comments">Most commented</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="feed-header">
+      <h2>Community Feed</h2>
+      <p>Post ideas, art, dragon lore, random chaos, all of it.</p>
+    </section>
+
+    <section id="feed" class="feed-grid"></section>
+  </main>
+<section id="roleplayingArea" class="area hidden-area">
+  <div class="docs-wrapper">
+
+    <div class="docs-tabs-bar">
+      <div id="docTabs" class="doc-tabs"></div>
+      <button id="newDocTabBtn" class="new-tab-btn" type="button">+ New Tab</button>
+    </div>
+<button type="button" id="boldBtn"><b>B</b></button>
+<button type="button" id="italicBtn"><i>I</i></button>
+<button type="button" id="centerBtn">⬌</button>
+    <select id="fontSelect">
+  <option value="Arial">Arial</option>
+  <option value="Georgia">Georgia</option>
+  <option value="Times New Roman">Times New Roman</option>
+  <option value="Courier New">Courier New</option>
+  <option value="Verdana">Verdana</option>
+</select>
+
+<select id="fontSizeSelect">
+  <option value="1">Small</option>
+  <option value="3">Normal</option>
+  <option value="5">Large</option>
+  <option value="7">Huge</option>
+</select>
+
+<input id="textColorPicker" type="color" value="#000000" />
+<input id="highlightColorPicker" type="color" value="#fff59d" />
+
+<div id="roleplayEditor" class="docs-page" contenteditable="true"></div>
+
+    <div id="roleplayEditor" class="docs-page" contenteditable="true"></div>
+  </div>
+</section>
+  <template id="postTemplate">
+    <article class="card">
+      <img class="card-image" src="" alt="post image" />
+
+      <div class="card-body">
+        <div class="card-top">
+          <div class="user-row">
+            <div class="tiny-avatar"></div>
+            <div>
+              <div class="username"></div>
+              <div class="time-stamp"></div>
+            </div>
+          </div>
+
+          <span class="tag-pill">Pinned</span>
+        </div>
+
+        <p class="card-text"></p>
+
+        <div class="card-actions">
+  <button class="action-btn like-btn" type="button">❤️ <span class="like-count">0</span></button>
+  <button class="action-btn comment-toggle-btn" type="button">💬 <span class="comment-count">0</span></button>
+  <button class="action-btn pin-btn hidden" type="button">📌 Pin</button>
+  <button class="action-btn delete-btn hidden" type="button">🗑 Delete</button>
+</div>
+
+        <div class="comments-panel hidden">
+          <div class="comments-list"></div>
+
+          <div class="comment-input-row">
+            <input class="comment-input" type="text" placeholder="Write a comment..." />
+            <button class="comment-submit-btn" type="button">Send</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <div id="bioModal" class="bio-modal hidden">
+    <div class="bio-backdrop" id="bioBackdrop"></div>
+
+    <div class="bio-card">
+      <button id="closeBioBtn" class="close-bio-btn" type="button">✖</button>
+
+      <div class="bio-header">
+        <div id="bioAvatar" class="bio-avatar">K</div>
+        <div>
+          <h3 id="bioName">@Kolt</h3>
+          <p id="bioRole" class="bio-role">Creator</p>
+        </div>
+      </div>
+
+      <p id="bioText" class="bio-text">Bio goes here.</p>
+
+      <div class="bio-extra">
+        <span id="bioLikes" class="bio-chip">Likes: dragons</span>
+        <span id="bioTag" class="bio-chip">Tag: artist</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="profileEditorModal" class="bio-modal hidden">
+    <div class="bio-backdrop" id="profileEditorBackdrop"></div>
+
+    <div class="bio-card">
+      <button id="closeProfileEditorBtn" class="close-bio-btn" type="button">✖</button>
+
+      <div class="bio-header">
+        <div id="editorPreviewAvatar" class="bio-avatar">K</div>
+        <div>
+          <h3>Edit Profile</h3>
+          <p class="bio-role">Customize your profile</p>
+        </div>
+      </div>
+
+      <div class="editor-fields">
+        <div class="file-row">
+          <label for="profilePicInput" class="file-btn">Choose Profile Pic</label>
+          <input id="profilePicInput" type="file" accept="image/*" hidden />
+          <span id="profilePicName" class="file-name">No profile pic chosen</span>
+        </div>
+
+        <input id="editRoleInput" class="editor-input" type="text" placeholder="Role" />
+        <textarea id="editBioInput" class="editor-textarea" placeholder="Write your bio..."></textarea>
+        <input id="editLikesInput" class="editor-input" type="text" placeholder="Likes" />
+        <input id="editTagInput" class="editor-input" type="text" placeholder="Tag" />
+
+        <button id="saveProfileBtn" class="post-btn" type="button">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="postViewModal" class="bio-modal hidden">
+    <div class="bio-backdrop" id="postViewBackdrop"></div>
+
+    <div class="bio-card post-view-card">
+      <button id="closePostViewBtn" class="close-bio-btn" type="button">✖</button>
+
+      <div class="post-view-content">
+        <img id="postViewImage" class="post-view-image" src="" alt="Post image" />
+
+        <div class="post-view-header">
+          <div id="postViewAvatar" class="bio-avatar">K</div>
+          <div>
+            <h3 id="postViewUsername">@Kolt</h3>
+            <p id="postViewTime" class="bio-role">just now</p>
+          </div>
+        </div>
+
+        <h2 id="postViewTitle" class="post-view-title">Post Title</h2>
+        <p id="postViewDescription" class="post-view-description">Description goes here.</p>
+
+        <div class="comments-panel show-comments">
+          <h4>Comments</h4>
+          <div id="postViewComments" class="comments-list"></div>
+
+          <div class="comment-input-row">
+            <input
+              id="postViewCommentInput"
+              type="text"
+              class="comment-input"
+              placeholder="Write a comment..."
+            />
+            <button id="postViewCommentBtn" type="button" class="comment-submit-btn">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<div id="notifModal" class="notif-dropdown hidden">
+  <div class="notif-dropdown-card">
+    <div class="notif-dropdown-header">
+      <h3>Notifications</h3>
+      <button id="closeNotifBtn" class="close-bio-btn" type="button">✖</button>
+    </div>
+
+    <div id="notifList" class="comments-list notif-dropdown-list"></div>
+  </div>
+</div>
+</div>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
