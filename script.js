@@ -1365,7 +1365,7 @@ let docs = [
   }
 ];
 
-let activeDocId = 1;
+let activeDocId = currentRoleplayDocId;
 let savedRange = null;
 
 // Makes execCommand use inline CSS when possible
@@ -1436,22 +1436,6 @@ function renderTabs() {
   });
 }
 
-function createNewTab() {
-  saveActiveDocContent();
-
-  const newId = Date.now();
-  const newNumber = docs.length + 1;
-
-  docs.push({
-    id: newId,
-    title: "Doc " + newNumber,
-    content: "<h1>New Roleplay Doc</h1><p>Write something legendary...</p>"
-  });
-
-  activeDocId = newId;
-  renderTabs();
-  openDoc(newId);
-}
 
 if (newDocTabBtn) {
   newDocTabBtn.addEventListener("click", createNewTab);
@@ -1490,7 +1474,7 @@ if (highlightColorPicker) {
 
 const rpPresenceBar = document.getElementById("rpPresenceBar");
 
-let currentRoleplayDocId = "PASTE-YOUR-DOC-ID-HERE";
+let currentRoleplayDocId = "1d88ba60-352c-4f04-969e-aab6ac3c2e11";
 let rpChannel = null;
 let rpSaveTimer = null;
 let isApplyingRemoteUpdate = false;
