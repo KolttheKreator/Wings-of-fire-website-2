@@ -67,7 +67,7 @@ const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
 
 let currentUser = null;
-let notifications = [];
+let notificationsByUser = {};
 let selectedImageData = "";
 let activePostId = null;
 let posts = [];
@@ -215,7 +215,7 @@ const users = Object.keys(bios);
 function saveLocalData() {
   try {
     localStorage.setItem("dragon_bios", JSON.stringify(bios));
-    localStorage.setItem("dragon_notifications", JSON.stringify(notifications));
+    localStorage.setItem("dragon_notifications_by_user", JSON.stringify(notificationsByUser));
     localStorage.setItem("dragon_currentUser", currentUser || "");
   } catch (error) {
     console.error("Could not save local data:", error);
@@ -225,7 +225,7 @@ function saveLocalData() {
 function loadLocalData() {
   try {
     const savedBios = localStorage.getItem("dragon_bios");
-    const savedNotifications = localStorage.getItem("dragon_notifications");
+    const savedNotificationsByUser = localStorage.getItem("dragon_notifications_by_user");
     const savedCurrentUser = localStorage.getItem("dragon_currentUser");
 
     if (savedBios) {
@@ -237,10 +237,10 @@ function loadLocalData() {
       }
     }
 
-    if (savedNotifications) {
-      const parsedNotifications = JSON.parse(savedNotifications);
-      if (Array.isArray(parsedNotifications)) {
-        notifications = parsedNotifications;
+    if (savedNotificationsByUser) {
+      const parsedNotifications = JSON.parse(savedNotificationsByUser);
+      if (parsedNotifications && typeof parsedNotifications === "object") {
+        notificationsByUser = parsedNotifications;
       }
     }
 
@@ -253,15 +253,22 @@ function loadLocalData() {
 }
 
 function updateNotificationCount() {
-  if (notifCount) {
-    const unreadCount = notifications.filter((notif) => !notif.read).length;
-    notifCount.textContent = unreadCount;
-  }
+  if (!notifCount) return;
+
+  const myNotifications = getCurrentUserNotifications();
+  const unreadCount = myNotifications.filter((notif) => !notif.read).length;
+  notifCount.textContent = unreadCount;
 }
 
-function addNotification(message, postId = null, type = "general") {
-  notifications.unshift({
-    id: Date.now(),
+function addNotification(targetUser, message, postId = null, type = "general") {
+  if (!targetUser) return;
+
+  if (!notificationsByUser[targetUser]) {
+    notificationsByUser[targetUser] = [];
+  }
+
+  notificationsByUser[targetUser].unshift({
+    id: Date.now() + Math.random(),
     text: message,
     postId: postId,
     type: type,
@@ -270,21 +277,31 @@ function addNotification(message, postId = null, type = "general") {
   });
 
   saveLocalData();
-  updateNotificationCount();
-}
 
+  if (currentUser === targetUser) {
+    updateNotificationCount();
+  }
+}
+function getCurrentUserNotifications() {
+  if (!currentUser) return [];
+  if (!notificationsByUser[currentUser]) {
+    notificationsByUser[currentUser] = [];
+  }
+  return notificationsByUser[currentUser];
+}
 function openNotifications() {
   if (!notifModal || !notifList) return;
 
+  const myNotifications = getCurrentUserNotifications();
   notifList.innerHTML = "";
 
-  if (notifications.length === 0) {
+  if (myNotifications.length === 0) {
     const empty = document.createElement("div");
     empty.className = "comment";
     empty.textContent = "No notifications yet.";
     notifList.appendChild(empty);
   } else {
-    notifications.forEach((notif) => {
+    myNotifications.forEach((notif) => {
       const div = document.createElement("button");
       div.type = "button";
       div.className = "comment notif-item";
@@ -347,7 +364,8 @@ function closeNotifications() {
 }
 
 function markNotificationAsRead(notificationId) {
-  const notif = notifications.find((n) => n.id === notificationId);
+  const myNotifications = getCurrentUserNotifications();
+  const notif = myNotifications.find((n) => n.id === notificationId);
   if (!notif) return;
 
   notif.read = true;
@@ -356,7 +374,8 @@ function markNotificationAsRead(notificationId) {
 }
 
 function openNotificationTarget(notificationId) {
-  const notif = notifications.find((n) => n.id === notificationId);
+  const myNotifications = getCurrentUserNotifications();
+  const notif = myNotifications.find((n) => n.id === notificationId);
   if (!notif) return;
 
   markNotificationAsRead(notificationId);
@@ -775,13 +794,32 @@ async function submitPostViewComment() {
 
   if (!ok) return;
 
-  if (shouldNotifyForPost(post, currentUser)) {
-  addNotification(
-    `${currentUser} commented on a post you're following`,
-    post.id,
-    "comment"
-  );
-}
+  if (post.username !== currentUser) {
+    addNotification(
+      post.username,
+      `${currentUser} commented on your post`,
+      post.id,
+      "comment"
+    );
+  }
+
+  const notifiedUsers = new Set();
+
+  post.comments.forEach((comment) => {
+    if (
+      comment.user !== currentUser &&
+      comment.user !== post.username &&
+      !notifiedUsers.has(comment.user)
+    ) {
+      addNotification(
+        comment.user,
+        `${currentUser} also commented on a post you're in`,
+        post.id,
+        "comment"
+      );
+      notifiedUsers.add(comment.user);
+    }
+  });
 
   saveLocalData();
   await loadPostsFromSupabase();
@@ -954,13 +992,14 @@ function renderPosts() {
 
         if (!ok) return;
 
-        if (currentUser && post.username !== currentUser) {
-          addNotification(
-            `${currentUser} liked ${post.username}'s post`,
-            post.id,
-            "like"
-          );
-        }
+        if (post.username !== currentUser) {
+  addNotification(
+  post.username,
+  `${currentUser} liked your post`,
+  post.id,
+  "like"
+);
+}
 
         await loadPostsFromSupabase();
 
@@ -996,13 +1035,32 @@ function renderPosts() {
 
         if (!ok) return;
 
-        if (shouldNotifyForPost(post, currentUser)) {
+        if (post.username !== currentUser) {
   addNotification(
-    `${currentUser} commented on a post you're following`,
+    post.username,
+    `${currentUser} commented on your post`,
     post.id,
     "comment"
   );
 }
+
+const notifiedUsers = new Set();
+
+post.comments.forEach((comment) => {
+  if (
+    comment.user !== currentUser &&
+    comment.user !== post.username &&
+    !notifiedUsers.has(comment.user)
+  ) {
+    addNotification(
+      comment.user,
+      `${currentUser} also commented on a post you're in`,
+      post.id,
+      "comment"
+    );
+    notifiedUsers.add(comment.user);
+  }
+});
 
         saveLocalData();
         await loadPostsFromSupabase();
@@ -1132,7 +1190,10 @@ if (postBtn) {
     const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
     mentions.forEach((mention) => {
       if (bios[mention] && mention !== currentUser) {
-        addNotification(`${currentUser} mentioned ${mention} in a post`);
+        addNotification(
+          mention,
+          `${currentUser} mentioned you in a post`
+        );
       }
     });
 
@@ -1187,6 +1248,7 @@ if (notifBtn) {
     }
   });
 }
+
 let postsChannel = null;
 
 function subscribeToPostChanges() {
@@ -1216,11 +1278,12 @@ function subscribeToPostChanges() {
       console.log("Supabase live status:", status);
     });
 }
+
+
+
 if (closeNotifBtn) {
   closeNotifBtn.addEventListener("click", closeNotifications);
 }
-
-
 
 if (closeBioBtn) {
   closeBioBtn.onclick = closeBio;
