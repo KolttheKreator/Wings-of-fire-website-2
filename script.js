@@ -1310,7 +1310,14 @@ async function startApp() {
   await startRoleplayLive();
 }
 
-startApp();
+const rpPresenceBar = document.getElementById("rpPresenceBar");
+
+let currentRoleplayDocId = "1d88ba60-352c-4f04-969e-aab6ac3c2e11";
+let rpChannel = null;
+let rpSaveTimer = null;
+let isApplyingRemoteUpdate = false;
+
+
 
 
 
@@ -1359,7 +1366,7 @@ if (italicBtn) {
 }
 let docs = [
   {
-    id: "REAL-SUPABASE-UUID-HERE",
+    id: "1d88ba60-352c-4f04-969e-aab6ac3c2e11",
     title: "Main RP Doc",
     content: ""
   }
@@ -1472,12 +1479,7 @@ if (highlightColorPicker) {
   });
 }
 
-const rpPresenceBar = document.getElementById("rpPresenceBar");
 
-let currentRoleplayDocId = "1d88ba60-352c-4f04-969e-aab6ac3c2e11";
-let rpChannel = null;
-let rpSaveTimer = null;
-let isApplyingRemoteUpdate = false;
 async function loadRoleplayDoc(docId) {
   const { data, error } = await supabase
     .from("roleplay_docs")
@@ -1632,6 +1634,6 @@ async function createNewTab() {
   renderTabs();
 }
 
-
+startApp();
 renderTabs();
 openDoc(activeDocId);
