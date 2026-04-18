@@ -25,7 +25,9 @@ body {
 
 .hero {
   min-height: 420px;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("https://raw.githubusercontent.com/KolttheKreator/Wings-of-fire-website-2/main/Images/banner.jpg");
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)),
+    url("https://raw.githubusercontent.com/KolttheKreator/Wings-of-fire-website-2/main/Images/banner.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
