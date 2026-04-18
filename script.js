@@ -454,15 +454,16 @@ async function signInWithKeyword() {
 function logout() {
   currentUser = null;
   localStorage.removeItem("dragon_currentUser");
-  showLoginScreen();
-
-  if (keywordInput) keywordInput.value = "";
-  if (loginMessage) loginMessage.textContent = "";
 
   closeBio();
   closeProfileEditor();
   closePostView();
   closeNotifications();
+
+  if (keywordInput) keywordInput.value = "";
+  if (loginMessage) loginMessage.textContent = "";
+
+  showLoginScreen();
 }
 
 function setProfileImage(imageSrc) {
@@ -1307,9 +1308,11 @@ async function startApp() {
   }
 }
 
-
-
 startApp();
+
+
+
+
 const areaSelect = document.getElementById("areaSelect");
 const feedArea = document.getElementById("feedArea");
 const roleplayingArea = document.getElementById("roleplayingArea");
