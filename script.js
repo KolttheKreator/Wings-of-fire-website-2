@@ -73,22 +73,22 @@ let activePostId = null;
 let posts = [];
 
 const profileKeywords = {
-  "Kraken": "@Kolt",
-  "Wing": "@Jay",
-  "Nova": "@Nova",
-  "Sketch": "@Aanya",
-  "Sugar": "@Savannah",
-  "Funny": "@Olivia",
-  "Chaos": "@Wyatt",
-  "Loki": "@Cathy",
-  "Rumi": "@Kaiju",
-  "Cool": "@Cae",
-  "Blunt": "@Kadence",
-  "Duck": "@Donnie",
-  "Skin": "@Alexei",
-  "Ded": "@Sabrina",
-  "Ghost": "@Sarah",
-  "Revived": "@Deidre"
+  kraken: "@Kolt",
+  wing: "@Jay",
+  nova: "@Nova",
+  sketch: "@Aanya",
+  sugar: "@Savannah",
+  funny: "@Olivia",
+  chaos: "@Wyatt",
+  loki: "@Cathy",
+  rumi: "@Kaiju",
+  cool: "@Cae",
+  blunt: "@Kadence",
+  duck: "@Donnie",
+  skin: "@Alexei",
+  ded: "@Sabrina",
+  ghost: "@Sarah",
+  revived: "@Deidre"
 
 
  
@@ -1212,7 +1212,17 @@ if (profileEditorBackdrop) {
 if (loginKeywordBtn) {
   loginKeywordBtn.addEventListener("click", signInWithKeyword);
 }
+function signInWithKeyword() {
+  const enteredKeyword = keywordInput.value.trim().toLowerCase();
+  const matchedProfile = profileKeywords[enteredKeyword];
 
+  if (matchedProfile) {
+    loginMessage.textContent = "Success!";
+    currentUser = matchedProfile;
+  } else {
+    loginMessage.textContent = "Incorrect keyword";
+  }
+}
 if (keywordInput) {
   keywordInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
