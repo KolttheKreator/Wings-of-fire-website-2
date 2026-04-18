@@ -1212,17 +1212,7 @@ if (profileEditorBackdrop) {
 if (loginKeywordBtn) {
   loginKeywordBtn.addEventListener("click", signInWithKeyword);
 }
-function signInWithKeyword() {
-  const enteredKeyword = keywordInput.value.trim().toLowerCase();
-  const matchedProfile = profileKeywords[enteredKeyword];
 
-  if (matchedProfile) {
-    loginMessage.textContent = "Success!";
-    currentUser = matchedProfile;
-  } else {
-    loginMessage.textContent = "Incorrect keyword";
-  }
-}
 if (keywordInput) {
   keywordInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
