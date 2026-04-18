@@ -833,21 +833,21 @@ async function submitPostViewComment() {
 
   const notifiedUsers = new Set();
 
-  post.comments.forEach((comment) => {
-    if (
-      comment.user !== currentUser &&
-      comment.user !== post.username &&
-      !notifiedUsers.has(comment.user)
-    ) {
-      addNotification(
-        comment.user,
-        `${currentUser} also commented on a post you're in`,
-        post.id,
-        "comment"
-      );
-      notifiedUsers.add(comment.user);
-    }
-  });
+  for (const comment of post.comments) {
+  if (
+    comment.user !== currentUser &&
+    comment.user !== post.username &&
+    !notifiedUsers.has(comment.user)
+  ) {
+    await addNotification(
+      comment.user,
+      `${currentUser} also commented on a post you're in`,
+      post.id,
+      "comment"
+    );
+    notifiedUsers.add(comment.user);
+  }
+}
 
   saveLocalData();
   await loadPostsFromSupabase();
