@@ -324,6 +324,7 @@ async function signInWithKeyword() {
   }
 
   currentUser = matchedUser;
+  subscribeToNotificationChanges();
   saveLocalData();
   hideLoginScreen();
   refreshMainProfileUI();
@@ -823,7 +824,7 @@ async function submitPostViewComment() {
   if (!ok) return;
 
   if (post.username !== currentUser) {
-    addNotification(
+    await addNotification(
       post.username,
       `${currentUser} commented on your post`,
       post.id,
@@ -834,28 +835,59 @@ async function submitPostViewComment() {
   const notifiedUsers = new Set();
 
   for (const comment of post.comments) {
-  if (
-    comment.user !== currentUser &&
-    comment.user !== post.username &&
-    !notifiedUsers.has(comment.user)
-  ) {
-    await addNotification(
-      comment.user,
-      `${currentUser} also commented on a post you're in`,
-      post.id,
-      "comment"
-    );
-    notifiedUsers.add(comment.user);
+    if (
+      comment.user !== currentUser &&
+      comment.user !== post.username &&
+      !notifiedUsers.has(comment.user)
+    ) {
+      await addNotification(
+        comment.user,
+        `${currentUser} also commented on a post you're in`,
+        post.id,
+        "comment"
+      );
+      notifiedUsers.add(comment.user);
+    }
   }
-}
 
   saveLocalData();
   await loadPostsFromSupabase();
+  await updateNotificationCount();
 
   const updatedPost = posts.find((p) => p.id === activePostId);
   if (updatedPost) {
     openPostView(updatedPost);
   }
+}
+let notificationsChannel = null;
+
+function subscribeToNotificationChanges() {
+  if (notificationsChannel || !currentUser) return;
+
+  notificationsChannel = supabase
+    .channel("public-notifications-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "notifications"
+      },
+      async (payload) => {
+        const newRow = payload.new;
+        const oldRow = payload.old;
+
+        if (
+          (newRow && newRow.target_user === currentUser) ||
+          (oldRow && oldRow.target_user === currentUser)
+        ) {
+          await updateNotificationCount();
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log("Notification live status:", status);
+    });
 }
 
 function renderPosts() {
@@ -1372,6 +1404,7 @@ async function startApp() {
   subscribeToPostChanges();
 
   if (currentUser && bios[currentUser]) {
+    subscribeToNotificationChanges();
     hideLoginScreen();
     refreshMainProfileUI();
   } else {
