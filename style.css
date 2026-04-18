@@ -956,3 +956,13 @@ body.modal-open {
   margin-bottom: 12px;
   font-size: 14px;
 }
+.feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.card {
+  align-self: start;
+}
