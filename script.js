@@ -1002,41 +1002,33 @@ function renderPosts() {
       }
     }
 
-    if (commentsList) {
-      commentsList.innerHTML = "";
-      post.comments.forEach((comment) => {
-        const div = document.createElement("div");
-        div.className = "comment";
-        div.innerHTML = `<b>${comment.user}</b> ${highlightMentions(comment.text)}`;
-        commentsList.appendChild(div);
-      });
-    }
-
     if (likeBtn) {
-      likeBtn.onclick = async function () {
-        const ok = await updatePostInSupabase(post.id, {
-          likes: post.likes + 1
-        });
+  likeBtn.onclick = async function () {
+    const ok = await updatePostInSupabase(post.id, {
+      likes: post.likes + 1
+    });
 
-        if (!ok) return;
+    if (!ok) return;
 
-        if (post.username !== currentUser) {
-  await addNotification(
-  post.username,
-  `${currentUser} liked your post`,
-  post.id,
-  "like"
-);
-
-        await loadPostsFromSupabase();
-
-        const updatedPost = posts.find((p) => p.id === post.id);
-        if (activePostId === post.id && updatedPost) {
-          openPostView(updatedPost);
-        }
-      };
+    if (post.username !== currentUser) {
+      await addNotification(
+        post.username,
+        `${currentUser} liked your post`,
+        post.id,
+        "like"
+      );
     }
 
+    await loadPostsFromSupabase();
+
+    const updatedPost = posts.find((p) => p.id === post.id);
+    if (activePostId === post.id && updatedPost) {
+      openPostView(updatedPost);
+    }
+  };
+}
+
+        
     if (commentToggleBtn && commentsPanel) {
       commentToggleBtn.onclick = function () {
         commentsPanel.classList.toggle("hidden");
