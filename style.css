@@ -24,11 +24,12 @@ body {
 }
 
 .hero {
-  min-height: 420px;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18)), url("https://github.com/KolttheKreator/Wings-of-fire-website-2/blob/main/Images/banner.jpg");
+  background-image: url("https://github.com/KolttheKreator/Wings-of-fire-website-2/blob/main/Images/banner.jpg"); /* change this if your file is elsewhere */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  min-height: 320px;
+  position: relative;
 }
 
 .hero-overlay {
