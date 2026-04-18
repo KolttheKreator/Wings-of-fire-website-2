@@ -73,22 +73,22 @@ let activePostId = null;
 let posts = [];
 
 const profileKeywords = {
-  Kraken: "@Kolt",
-  Wing: "@Jay",
-  Nova: "@Nova",
-  Sketch: "@Aanya",
-  Sugar: "@Savannah",
-  Funny: "@Olivia",
-  Chaos: "@Wyatt",
-  Loki: "@Cathy",
-  Rumi: "@Kaiju",
-  Cool: "@Cae",
-  Blunt: "@Kadence",
-  Duck: "@Donnie",
-  Skin: "@Alexei",
-  Ded: "@Sabrina",
-  Ghost: "@Sarah",
-  Revived: "@Deidre"
+  "Kraken": "@Kolt",
+  "Wing": "@Jay",
+  "Nova": "@Nova",
+  "Sketch": "@Aanya",
+  "Sugar": "@Savannah",
+  "Funny": "@Olivia",
+  "Chaos": "@Wyatt",
+  "Loki": "@Cathy",
+  "Rumi": "@Kaiju",
+  "Cool": "@Cae",
+  "Blunt": "@Kadence",
+  "Duck": "@Donnie",
+  "Skin": "@Alexei",
+  "Ded": "@Sabrina",
+  "Ghost": "@Sarah",
+  "Revived": "@Deidre"
 
 
  
