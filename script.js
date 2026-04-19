@@ -18,7 +18,16 @@ const fileName = document.getElementById("fileName");
 const sortSelect = document.getElementById("sortSelect");
 const notifCount = document.getElementById("notifCount");
 const mentionList = document.getElementById("mentionList");
-
+const threadOverlay = document.getElementById("threadOverlay");
+const threadBackdrop = document.getElementById("threadBackdrop");
+const threadPanel = document.getElementById("threadPanel");
+const closeThreadBtn = document.getElementById("closeThreadBtn");
+const threadTitle = document.getElementById("threadTitle");
+const threadSubtitle = document.getElementById("threadSubtitle");
+const threadComments = document.getElementById("threadComments");
+const threadReplyInput = document.getElementById("threadReplyInput");
+const threadReplyBtn = document.getElementById("threadReplyBtn");
+const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
 const notifBtn = document.getElementById("notifBtn");
 const notifModal = document.getElementById("notifModal");
 const closeNotifBtn = document.getElementById("closeNotifBtn");
@@ -107,7 +116,8 @@ let selectedImageData = "";
 let activePostId = null;
 let posts = [];
 let editingPostId = null;
-
+let activeThreadPostId = null;
+let activeThreadCommentId = null;
 // =========================
 // Data
 // =========================
@@ -789,10 +799,30 @@ function openPostView(post) {
     postViewComments.innerHTML = "";
 
     post.comments.forEach((comment) => {
-      const div = document.createElement("div");
-      div.className = "comment";
-      div.innerHTML = `<b>${comment.user}</b> ${highlightMentions(comment.text || "")}`;
-      postViewComments.appendChild(div);
+      const card = document.createElement("div");
+      card.className = "comment-thread-card";
+
+      const replyCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
+      const avatarLetter = bios[comment.user]?.letter || comment.user?.[1] || "?";
+
+      card.innerHTML = `
+        <div class="comment-thread-top">
+          <div class="comment-thread-avatar">${avatarLetter}</div>
+          <div>
+            <div class="comment-thread-user">${comment.user}</div>
+            <div class="comment-thread-time">${comment.created_at ? formatTime(comment.created_at) : ""}</div>
+          </div>
+        </div>
+
+        <div class="comment-thread-text">${highlightMentions(comment.text || "")}</div>
+        <div class="comment-thread-meta">${replyCount} repl${replyCount === 1 ? "y" : "ies"} • Open thread</div>
+      `;
+
+      card.addEventListener("click", function () {
+        openThreadPanel(post.id, comment.id);
+      });
+
+      postViewComments.appendChild(card);
     });
   }
 
@@ -801,7 +831,158 @@ function openPostView(post) {
   if (postViewModal) postViewModal.classList.remove("hidden");
   document.body.classList.add("modal-open");
 }
+function closeThreadPanel() {
+  activeThreadPostId = null;
+  activeThreadCommentId = null;
+  if (threadReplyInput) threadReplyInput.value = "";
+  if (threadOverlay) threadOverlay.classList.add("hidden");
+}
 
+function openThreadPanel(postId, commentId) {
+  const post = posts.find((p) => String(p.id) === String(postId));
+  if (!post || !threadOverlay || !threadComments) return;
+
+  const comment = post.comments.find((c) => String(c.id) === String(commentId));
+  if (!comment) return;
+
+  activeThreadPostId = post.id;
+  activeThreadCommentId = comment.id;
+
+  if (threadTitle) {
+    threadTitle.textContent = `${comment.user}'s Thread`;
+  }
+
+  if (threadSubtitle) {
+    const replyCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
+    threadSubtitle.textContent = `${replyCount} repl${replyCount === 1 ? "y" : "ies"}`;
+  }
+
+  if (threadPostMiniAvatar) {
+    threadPostMiniAvatar.textContent = bios[comment.user]?.letter || comment.user?.[1] || "?";
+  }
+
+  renderSingleCommentThread(post, comment);
+  threadOverlay.classList.remove("hidden");
+}
+
+function renderSingleCommentThread(post, parentComment) {
+  if (!threadComments) return;
+
+  threadComments.innerHTML = "";
+
+  const mainRow = document.createElement("div");
+  mainRow.className = "thread-comment";
+
+  const mainAvatar = document.createElement("div");
+  mainAvatar.className = "thread-comment-avatar";
+  mainAvatar.textContent = bios[parentComment.user]?.letter || parentComment.user?.[1] || "?";
+
+  const mainBody = document.createElement("div");
+  mainBody.className = "thread-comment-body";
+
+  const mainUser = document.createElement("div");
+  mainUser.className = "thread-comment-user";
+  mainUser.textContent = parentComment.user;
+
+  const mainBubble = document.createElement("div");
+  mainBubble.className = "thread-comment-bubble";
+  mainBubble.innerHTML = highlightMentions(parentComment.text || "");
+
+  const mainTime = document.createElement("div");
+  mainTime.className = "thread-comment-time";
+  mainTime.textContent = parentComment.created_at ? formatTime(parentComment.created_at) : "";
+
+  mainBody.appendChild(mainUser);
+  mainBody.appendChild(mainBubble);
+  mainBody.appendChild(mainTime);
+
+  mainRow.appendChild(mainAvatar);
+  mainRow.appendChild(mainBody);
+  threadComments.appendChild(mainRow);
+
+  const replies = Array.isArray(parentComment.replies) ? parentComment.replies : [];
+
+  replies.forEach((reply) => {
+    const row = document.createElement("div");
+    row.className = "thread-comment" + (reply.user === currentUser ? " mine" : "");
+
+    const avatar = document.createElement("div");
+    avatar.className = "thread-comment-avatar";
+    avatar.textContent = bios[reply.user]?.letter || reply.user?.[1] || "?";
+
+    const body = document.createElement("div");
+    body.className = "thread-comment-body";
+
+    const user = document.createElement("div");
+    user.className = "thread-comment-user";
+    user.textContent = reply.user;
+
+    const bubble = document.createElement("div");
+    bubble.className = "thread-comment-bubble";
+    bubble.innerHTML = highlightMentions(reply.text || "");
+
+    const time = document.createElement("div");
+    time.className = "thread-comment-time";
+    time.textContent = reply.created_at ? formatTime(reply.created_at) : "";
+
+    body.appendChild(user);
+    body.appendChild(bubble);
+    body.appendChild(time);
+
+    row.appendChild(avatar);
+    row.appendChild(body);
+    threadComments.appendChild(row);
+  });
+
+  threadComments.scrollTop = threadComments.scrollHeight;
+}
+
+async function submitThreadReply() {
+  if (!activeThreadPostId || !activeThreadCommentId || !currentUser || !threadReplyInput) return;
+
+  const text = threadReplyInput.value.trim();
+  if (!text) return;
+
+  const post = posts.find((p) => String(p.id) === String(activeThreadPostId));
+  if (!post) return;
+
+  const updatedComments = post.comments.map((comment) => {
+    if (String(comment.id) !== String(activeThreadCommentId)) return comment;
+
+    return {
+      ...comment,
+      replies: [
+        ...(Array.isArray(comment.replies) ? comment.replies : []),
+        {
+          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+          user: currentUser,
+          text,
+          created_at: Date.now()
+        }
+      ]
+    };
+  });
+
+  const ok = await updatePostInSupabase(post.id, {
+    comments: updatedComments
+  });
+
+  if (!ok) return;
+
+  threadReplyInput.value = "";
+  await loadPostsFromSupabase();
+
+  const updatedPost = posts.find((p) => String(p.id) === String(activeThreadPostId));
+  if (!updatedPost) return;
+
+  const updatedParentComment = updatedPost.comments.find(
+    (comment) => String(comment.id) === String(activeThreadCommentId)
+  );
+
+  if (updatedParentComment) {
+    renderSingleCommentThread(updatedPost, updatedParentComment);
+  }
+}
 function closePostView() {
   activePostId = null;
   if (postViewModal) postViewModal.classList.add("hidden");
@@ -820,10 +1001,12 @@ async function submitPostViewComment() {
   const updatedComments = [
     ...post.comments,
     {
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now(),
-      user: currentUser,
-      text
-    }
+  id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+  user: currentUser,
+  text,
+  created_at: Date.now(),
+  replies: []
+}
   ];
 
   const ok = await updatePostInSupabase(post.id, {
@@ -1057,9 +1240,11 @@ function renderPosts() {
         const updatedComments = [
           ...post.comments,
           {
-            id: crypto.randomUUID ? crypto.randomUUID() : Date.now(),
+            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
             user: currentUser,
-            text
+            text,
+            created_at: Date.now(),
+            replies: []
           }
         ];
 
@@ -1330,7 +1515,26 @@ if (fileInput) {
     reader.readAsDataURL(file);
   });
 }
+if (threadReplyBtn) {
+  threadReplyBtn.addEventListener("click", submitThreadReply);
+}
 
+if (threadReplyInput) {
+  threadReplyInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitThreadReply();
+    }
+  });
+}
+
+if (closeThreadBtn) {
+  closeThreadBtn.addEventListener("click", closeThreadPanel);
+}
+
+if (threadBackdrop) {
+  threadBackdrop.addEventListener("click", closeThreadPanel);
+}
 if (profilePicInput) {
   profilePicInput.addEventListener("change", function () {
     const file = profilePicInput.files?.[0];

@@ -1269,8 +1269,8 @@ body.modal-open {
 
 .comments-list .comment-preview,
 .comments-list .comment {
-  display: block;
-  width: 100%;
+  display: inline-block;
+  width: auto;
   max-width: 100%;
   padding: 8px 10px;
   border-radius: 12px;
