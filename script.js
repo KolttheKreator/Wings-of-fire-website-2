@@ -1898,6 +1898,9 @@ async function submitThreadReply() {
     renderSingleCommentThread(updatedPost, updatedParentComment);
   }
 }
+if (postViewModal) postViewModal.classList.add("hidden");
+if (notifModal) notifModal.classList.add("hidden");
+if (threadOverlay) threadOverlay.classList.add("hidden");
 
 startApp();
 renderTabs();
