@@ -1126,3 +1126,115 @@ body.modal-open {
 .open-comment-thread-btn:hover {
   background: #ddd6fe;
 }
+
+.post-view-card {
+  width: min(1200px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow: hidden;
+  padding: 0;
+}
+
+.post-view-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 0.9fr);
+  gap: 0;
+  min-height: 75vh;
+}
+
+.post-main-column {
+  padding: 18px;
+  border-right: 1px solid #e5e7eb;
+  overflow-y: auto;
+}
+
+.post-comments-column {
+  padding: 18px;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+.post-comments-header {
+  margin-bottom: 14px;
+}
+
+.post-comments-header h4 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.thread-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.comment-thread-card {
+  background: white;
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  border: 1px solid #eef2f7;
+}
+
+.comment-thread-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.comment-thread-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.comment-thread-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.comment-thread-user {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.comment-thread-time {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.comment-thread-text {
+  font-size: 14px;
+  line-height: 1.45;
+  margin-bottom: 12px;
+  word-break: break-word;
+}
+
+.comment-thread-meta {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+@media (max-width: 900px) {
+  .post-view-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .post-main-column {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}

@@ -230,12 +230,13 @@
   </div>
 
   <div id="postViewModal" class="bio-modal hidden">
-    <div class="bio-backdrop" id="postViewBackdrop"></div>
+  <div class="bio-backdrop" id="postViewBackdrop"></div>
 
-    <div class="bio-card post-view-card">
-      <button id="closePostViewBtn" class="close-bio-btn" type="button">✖</button>
+  <div class="bio-card post-view-card">
+    <button id="closePostViewBtn" class="close-bio-btn" type="button">✖</button>
 
-      <div class="post-view-content">
+    <div class="post-view-content post-view-layout">
+      <div class="post-main-column">
         <img id="postViewImage" class="post-view-image" src="" alt="Post image" />
 
         <div class="post-view-header">
@@ -248,24 +249,28 @@
 
         <h2 id="postViewTitle" class="post-view-title">Post Title</h2>
         <p id="postViewDescription" class="post-view-description">Description goes here.</p>
+      </div>
 
-        <div class="comments-panel show-comments">
-          <h4>Comments</h4>
-          <div id="postViewComments" class="comments-list"></div>
+      <div class="post-comments-column">
+        <div class="post-comments-header">
+          <h4>Threads</h4>
+        </div>
 
-          <div class="comment-input-row">
-            <input
-              id="postViewCommentInput"
-              type="text"
-              class="comment-input"
-              placeholder="Write a comment..."
-            />
-            <button id="postViewCommentBtn" type="button" class="comment-submit-btn">Send</button>
-          </div>
+        <div id="postViewComments" class="thread-grid"></div>
+
+        <div class="comment-input-row">
+          <input
+            id="postViewCommentInput"
+            type="text"
+            class="comment-input"
+            placeholder="Start a new comment thread..."
+          />
+          <button id="postViewCommentBtn" type="button" class="comment-submit-btn">Send</button>
         </div>
       </div>
     </div>
   </div>
+</div>
 <div id="notifModal" class="notif-dropdown hidden">
   <div class="notif-dropdown-card">
     <div class="notif-dropdown-header">

@@ -528,27 +528,30 @@ function openPostView(post) {
   postViewComments.innerHTML = "";
 
   post.comments.forEach((comment) => {
-    const div = document.createElement("div");
-    div.className = "comment";
+    const card = document.createElement("div");
+    card.className = "comment-thread-card";
 
     const replyCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
+    const avatarLetter = bios[comment.user]?.letter || comment.user?.[1] || "?";
 
-    div.innerHTML = `
-      <div><b>${comment.user}</b> ${highlightMentions(comment.text)}</div>
-      <button class="open-comment-thread-btn" type="button">
-        Open thread${replyCount > 0 ? ` (${replyCount})` : ""}
-      </button>
+    card.innerHTML = `
+      <div class="comment-thread-top">
+        <div class="comment-thread-avatar">${avatarLetter}</div>
+        <div>
+          <div class="comment-thread-user">${comment.user}</div>
+          <div class="comment-thread-time">${comment.created_at ? formatTime(comment.created_at) : ""}</div>
+        </div>
+      </div>
+
+      <div class="comment-thread-text">${highlightMentions(comment.text || "")}</div>
+      <div class="comment-thread-meta">${replyCount} repl${replyCount === 1 ? "y" : "ies"} • Open thread</div>
     `;
 
-    const threadBtn = div.querySelector(".open-comment-thread-btn");
-    if (threadBtn) {
-      threadBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        openThreadPanel(post.id, comment.id);
-      });
-    }
+    card.addEventListener("click", function () {
+      openThreadPanel(post.id, comment.id);
+    });
 
-    postViewComments.appendChild(div);
+    postViewComments.appendChild(card);
   });
 }
 
