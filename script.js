@@ -575,8 +575,9 @@ async function signInWithKeyword() {
   saveLocalData();
   hideLoginScreen();
   refreshMainProfileUI();
-  updateNotificationCount();
+
   await loadPostsFromSupabase();
+  await loadNotificationsFromSupabase();
 
   if (loginMessage) loginMessage.textContent = "";
   if (keywordInput) keywordInput.value = "";
@@ -1050,12 +1051,12 @@ async function submitPostViewComment() {
   const updatedComments = [
     ...post.comments,
     {
-  id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-  user: currentUser,
-  text,
-  created_at: Date.now(),
-  replies: []
-}
+      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      user: currentUser,
+      text,
+      created_at: Date.now(),
+      replies: []
+    }
   ];
 
   const ok = await updatePostInSupabase(post.id, {
@@ -1065,7 +1066,12 @@ async function submitPostViewComment() {
   if (!ok) return;
 
   if (post.username !== currentUser) {
-    await addNotification(post.username, `${currentUser} commented on your post`, post.id, "comment");
+    await addNotification(
+      post.username,
+      `${currentUser} commented on your post`,
+      post.id,
+      "comment"
+    );
   }
 
   saveLocalData();
@@ -1242,7 +1248,6 @@ function renderPosts() {
       }
     }
 
-    // Hide feed comment junk so cards don't stretch
     if (commentsList) {
       commentsList.innerHTML = "";
       commentsList.style.display = "none";
@@ -1264,8 +1269,9 @@ function renderPosts() {
         if (!ok) return;
 
         if (currentUser && post.username !== currentUser) {
-          addNotification(
-            `${currentUser} liked ${post.username}'s post`,
+          await addNotification(
+            post.username,
+            `${currentUser} liked your post`,
             post.id,
             "like"
           );
@@ -1280,7 +1286,6 @@ function renderPosts() {
       };
     }
 
-    // Comment button opens the full post view
     if (commentToggleBtn) {
       commentToggleBtn.onclick = function (e) {
         e.stopPropagation();
@@ -1313,7 +1318,8 @@ function renderPosts() {
         if (!ok) return;
 
         if (post.username !== currentUser) {
-          addNotification(
+          await addNotification(
+            post.username,
             `${currentUser} commented on your post`,
             post.id,
             "comment"
@@ -1576,6 +1582,73 @@ if (fileInput) {
     };
     reader.readAsDataURL(file);
   });
+
+  
+
+    if (editingPostId) {
+      const ok = await updatePostInSupabase(editingPostId, {
+        text,
+        description,
+        image: selectedImageData || ""
+      });
+
+      if (!ok) return;
+
+      editingPostId = null;
+      if (postBtn) postBtn.textContent = "Post";
+      if (postText) postText.value = "";
+      if (postDescription) postDescription.value = "";
+      if (fileInput) fileInput.value = "";
+      if (fileName) fileName.textContent = "No file chosen";
+      selectedImageData = "";
+
+      await loadPostsFromSupabase();
+      return;
+    }
+
+    const img =
+      selectedImageData ||
+      `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
+
+    const newPost = {
+      username: currentUser,
+      userLetter: bios[currentUser].letter || "?",
+      text,
+      description,
+      image: img,
+      likes: 0,
+      comments: [],
+      pinned: false,
+      createdAt: Date.now()
+    };
+
+    const ok = await addPostToSupabase(newPost);
+    if (!ok) return;
+
+    const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
+    for (const mention of mentions) {
+      if (bios[mention] && mention !== currentUser) {
+        await addNotification(
+          mention,
+          `${currentUser} mentioned you in a post`,
+          null,
+          "mention"
+        );
+      }
+    }
+
+    saveLocalData();
+
+    if (postText) postText.value = "";
+    if (postDescription) postDescription.value = "";
+    if (fileInput) fileInput.value = "";
+    if (fileName) fileName.textContent = "No file chosen";
+    selectedImageData = "";
+    if (mentionList) mentionList.classList.add("hidden");
+
+    await loadPostsFromSupabase();
+  };
+}
 }
 if (threadReplyBtn) {
   threadReplyBtn.addEventListener("click", submitThreadReply);
@@ -1695,11 +1768,16 @@ if (postBtn) {
     if (!ok) return;
 
     const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
-    mentions.forEach((mention) => {
-      if (bios[mention] && mention !== currentUser) {
-        addNotification(`${currentUser} mentioned ${mention} in a post`);
-      }
-    });
+for (const mention of mentions) {
+  if (bios[mention] && mention !== currentUser) {
+    await addNotification(
+      mention,
+      `${currentUser} mentioned you in a post`,
+      null,
+      "mention"
+    );
+  }
+}
 
     saveLocalData();
 
@@ -1787,18 +1865,19 @@ if (areaSelect) {
 // =========================
 async function startApp() {
   loadLocalData();
-  updateNotificationCount();
   updateAreaVisibility();
+
   await loadPostsFromSupabase();
-  subscribeToPostChanges();
 
   if (currentUser && bios[currentUser]) {
     hideLoginScreen();
     refreshMainProfileUI();
+    await loadNotificationsFromSupabase();
   } else {
     currentUser = null;
+    notifications = [];
+    updateNotificationCount();
     showLoginScreen();
-    
 
     if (keywordInput) {
       keywordInput.value = "";
@@ -1809,8 +1888,31 @@ async function startApp() {
       loginMessage.textContent = "";
     }
   }
-}
 
+  subscribeToPostChanges();
+  subscribeToNotificationChanges();
+}
+function subscribeToNotificationChanges() {
+  if (!currentUser) return;
+
+  supabase
+    .channel("public-notifications-live-" + currentUser)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "notifications",
+        filter: `recipient=eq.${currentUser}`
+      },
+      async () => {
+        await loadNotificationsFromSupabase();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Supabase notification live status:", status);
+    });
+}
 function subscribeToPostChanges() {
   if (postsChannel) return;
 
@@ -1827,7 +1929,7 @@ function subscribeToPostChanges() {
         await loadPostsFromSupabase();
 
         if (activePostId) {
-          const updatedPost = posts.find((p) => p.id === activePostId);
+          const updatedPost = posts.find((p) => String(p.id) === String(activePostId));
           if (updatedPost) {
             openPostView(updatedPost);
           }
@@ -1851,7 +1953,7 @@ function subscribeToPostChanges() {
       }
     )
     .subscribe((status) => {
-      console.log("Supabase live status:", status);
+      console.log("Supabase post live status:", status);
     });
 }
 
