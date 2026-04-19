@@ -624,6 +624,14 @@ async function loadPostsFromSupabase() {
   renderPosts();
 }
 async function addNotification(targetUser, message, postId = null, type = "general") {
+  console.log("addNotification called:", {
+    targetUser,
+    message,
+    postId,
+    type,
+    currentUser
+  });
+
   if (!targetUser) return;
 
   const { error } = await supabase.from("notifications").insert({
@@ -633,19 +641,20 @@ async function addNotification(targetUser, message, postId = null, type = "gener
     post_id: postId,
     type: type,
     read: false,
-    created_at: Date.now()
+    created_at: new Date().toISOString()
   });
 
   if (error) {
-    console.error("Could not add notification:", error.message);
+    console.error("Could not add notification:", error.message, error);
     return;
   }
+
+  console.log("notification insert worked");
 
   if (currentUser === targetUser) {
     await updateNotificationCount();
   }
 }
-
 async function getCurrentUserNotifications() {
   if (!currentUser) return [];
 
