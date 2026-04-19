@@ -385,18 +385,18 @@ function updateNotificationCount() {
   notifCount.textContent = String(unreadCount);
 }
 
-async function addNotification(recipient, message, postId = null, type = "general") {
-  const sender = currentUser || "System";
+async function addNotification(targetUser, text, postId = null, type = "general") {
+  const actorUser = currentUser || "System";
 
   const { error } = await supabase.from("notifications").insert({
-  user: recipient,
-  sender: sender,
-  message: message,
-  post_id: postId,
-  type: type,
-  read: false,
-  created_at: Date.now()
-});
+    target_user: targetUser,
+    actor_user: actorUser,
+    text: text,
+    post_id: postId,
+    type: type,
+    read: false,
+    created_at: Date.now()
+  });
 
   if (error) {
     console.error("Could not add notification:", error.message);
@@ -415,7 +415,7 @@ async function loadNotificationsFromSupabase() {
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
-    .eq("user", currentUser)
+    .eq("target_user", currentUser)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -425,9 +425,9 @@ async function loadNotificationsFromSupabase() {
 
   notifications = (data || []).map((notif) => ({
     id: notif.id,
-    recipient: notif.recipient,
-    sender: notif.sender,
-    text: notif.message,
+    recipient: notif.target_user,
+    sender: notif.actor_user,
+    text: notif.text,
     postId: notif.post_id,
     type: notif.type,
     createdAt: notif.created_at,
@@ -1836,7 +1836,7 @@ function subscribeToNotificationChanges() {
         event: "*",
         schema: "public",
         table: "notifications",
-        filter: `recipient=eq.${currentUser}`
+        filter: `target_user=eq.${currentUser}`
       },
       async () => {
         await loadNotificationsFromSupabase();
