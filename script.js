@@ -78,6 +78,7 @@ const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
 
 let activeThreadCommentId = null;
 let currentUser = null;
+let activeThreadPostId = null;
 
 let selectedImageData = "";
 let activePostId = null;
@@ -1121,7 +1122,7 @@ function renderPosts() {
     if (commentToggleBtn) {
   commentToggleBtn.onclick = function (e) {
     e.stopPropagation();
-    openThreadPanel(post.id);
+    openPostView(post);
   };
 }
 
@@ -1751,6 +1752,8 @@ async function createNewTab() {
 
 function closeThreadPanel() {
   activeThreadPostId = null;
+  activeThreadCommentId = null;
+  if (threadReplyInput) threadReplyInput.value = "";
   if (threadOverlay) threadOverlay.classList.add("hidden");
 }
 
@@ -1914,12 +1917,10 @@ async function submitThreadReply() {
     renderSingleCommentThread(updatedPost, updatedParentComment);
   }
 }
-if (postViewModal) postViewModal.classList.add("hidden");
-if (notifModal) notifModal.classList.add("hidden");
-if (threadOverlay) threadOverlay.classList.add("hidden");
 if (threadReplyBtn) {
   threadReplyBtn.addEventListener("click", submitThreadReply);
 }
+
 if (threadReplyInput) {
   threadReplyInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
