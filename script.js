@@ -2088,19 +2088,23 @@ async function saveEditedComment() {
   const newText = editCommentInput.value.trim();
   if (!newText) return;
 
-  const post = posts.find((p) => String(p.id) === String(editingCommentPostId));
+  const postId = editingCommentPostId;
+  const commentId = editingCommentId;
+  const replyId = editingReplyId;
+
+  const post = posts.find((p) => String(p.id) === String(postId));
   if (!post) return;
 
   let updatedComments;
 
-  if (editingReplyId) {
+  if (replyId) {
     updatedComments = post.comments.map((comment) => {
-      if (String(comment.id) !== String(editingCommentId)) return comment;
+      if (String(comment.id) !== String(commentId)) return comment;
 
       return {
         ...comment,
         replies: (comment.replies || []).map((reply) => {
-          if (String(reply.id) !== String(editingReplyId)) return reply;
+          if (String(reply.id) !== String(replyId)) return reply;
           return {
             ...reply,
             text: newText
@@ -2110,7 +2114,7 @@ async function saveEditedComment() {
     });
   } else {
     updatedComments = post.comments.map((comment) => {
-      if (String(comment.id) !== String(editingCommentId)) return comment;
+      if (String(comment.id) !== String(commentId)) return comment;
       return {
         ...comment,
         text: newText
@@ -2127,12 +2131,12 @@ async function saveEditedComment() {
   await loadPostsFromSupabase();
   closeEditCommentModal();
 
-  const updatedPost = posts.find((p) => String(p.id) === String(editingCommentPostId));
+  const updatedPost = posts.find((p) => String(p.id) === String(postId));
   if (!updatedPost) return;
 
-  if (editingReplyId) {
+  if (replyId) {
     const updatedParentComment = updatedPost.comments.find(
-      (c) => String(c.id) === String(editingCommentId)
+      (c) => String(c.id) === String(commentId)
     );
 
     if (updatedParentComment) {
@@ -2149,7 +2153,6 @@ if (closeEditCommentBtn) {
 if (editCommentBackdrop) {
   editCommentBackdrop.addEventListener("click", closeEditCommentModal);
 }
-
 if (saveEditCommentBtn) {
   saveEditCommentBtn.addEventListener("click", saveEditedComment);
 }
@@ -2162,7 +2165,6 @@ if (editCommentInput) {
     }
   });
 }
-
 startApp();
 renderTabs();
 openDoc(activeDocId);
