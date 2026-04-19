@@ -280,3 +280,32 @@
   <script type="module" src="script.js"></script>
 </body>
 </html>
+
+<div id="threadOverlay" class="thread-overlay hidden">
+  <div id="threadBackdrop" class="thread-backdrop"></div>
+
+  <aside id="threadPanel" class="thread-panel">
+    <div class="thread-header">
+      <div class="thread-header-left">
+        <div id="threadPostMiniAvatar" class="thread-mini-avatar">K</div>
+        <div>
+          <div id="threadTitle" class="thread-title">Comment Thread</div>
+          <div id="threadSubtitle" class="thread-subtitle">Open discussion</div>
+        </div>
+      </div>
+
+      <button id="closeThreadBtn" class="thread-close-btn">✕</button>
+    </div>
+
+    <div id="threadComments" class="thread-comments"></div>
+
+    <div class="thread-reply-bar">
+      <input
+        id="threadReplyInput"
+        type="text"
+        placeholder="Reply to comment"
+      />
+      <button id="threadReplyBtn">➤</button>
+    </div>
+  </aside>
+</div>

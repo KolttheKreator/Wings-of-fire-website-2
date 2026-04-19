@@ -65,7 +65,18 @@ const postViewDescription = document.getElementById("postViewDescription");
 const postViewComments = document.getElementById("postViewComments");
 const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
+const threadOverlay = document.getElementById("threadOverlay");
+const threadBackdrop = document.getElementById("threadBackdrop");
+const threadPanel = document.getElementById("threadPanel");
+const closeThreadBtn = document.getElementById("closeThreadBtn");
+const threadTitle = document.getElementById("threadTitle");
+const threadSubtitle = document.getElementById("threadSubtitle");
+const threadComments = document.getElementById("threadComments");
+const threadReplyInput = document.getElementById("threadReplyInput");
+const threadReplyBtn = document.getElementById("threadReplyBtn");
+const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
 
+let activeThreadPostId = null;
 let currentUser = null;
 
 let selectedImageData = "";
@@ -262,7 +273,10 @@ function closeNotifications() {
 
 
 function formatTime(createdAt) {
-  const mins = Math.floor((Date.now() - createdAt) / 60000);
+  const timeValue =
+    typeof createdAt === "string" ? new Date(createdAt).getTime() : Number(createdAt);
+
+  const mins = Math.floor((Date.now() - timeValue) / 60000);
 
   if (mins < 1) return "just now";
   if (mins === 1) return "1 minute ago";
@@ -913,10 +927,9 @@ function renderPosts() {
     const commentCount = clone.querySelector(".comment-count");
     const pinBtn = clone.querySelector(".pin-btn");
     const deleteBtn = clone.querySelector(".delete-btn");
-    const commentsPanel = clone.querySelector(".comments-panel");
+    
     const commentsList = clone.querySelector(".comments-list");
-    const commentInput = clone.querySelector(".comment-input");
-    const commentSubmitBtn = clone.querySelector(".comment-submit-btn");
+
 
     if (card) {
       card.style.cursor = "pointer";
@@ -936,6 +949,24 @@ function renderPosts() {
         openPostView(post);
       });
     }
+    if (commentsList) {
+  commentsList.innerHTML = "";
+
+  const latestComments = post.comments.slice(-2);
+
+  latestComments.forEach((comment, index) => {
+    const preview = document.createElement("div");
+    preview.className = "comment-preview";
+    preview.textContent = `${comment.user}: ${comment.text}`;
+
+    preview.addEventListener("click", function (e) {
+      e.stopPropagation();
+      openThreadPanel(post.id);
+    });
+
+    commentsList.appendChild(preview);
+  });
+}
 
     if (pinBtn) {
       if (post.username === currentUser) {
@@ -1061,73 +1092,16 @@ function renderPosts() {
 }
 
         
-    if (commentToggleBtn && commentsPanel) {
-      commentToggleBtn.onclick = function () {
-        commentsPanel.classList.toggle("hidden");
-      };
-    }
-
-    if (commentSubmitBtn && commentInput) {
-      commentSubmitBtn.onclick = async function () {
-        const text = commentInput.value.trim();
-        if (!text || !currentUser) return;
-
-        const updatedComments = [
-          ...post.comments,
-          {
-            user: currentUser,
-            text: text
-          }
-        ];
-
-        const ok = await updatePostInSupabase(post.id, {
-          comments: updatedComments
-        });
-
-        if (!ok) return;
-
-        if (post.username !== currentUser) {
-  await addNotification(
-    post.username,
-    `${currentUser} commented on your post`,
-    post.id,
-    "comment"
-  );
+    if (commentToggleBtn) {
+  commentToggleBtn.onclick = function (e) {
+    e.stopPropagation();
+    openThreadPanel(post.id);
+  };
 }
 
-const notifiedUsers = new Set();
+    
 
-for (const comment of post.comments) {
-  if (
-    comment.user !== currentUser &&
-    comment.user !== post.username &&
-    !notifiedUsers.has(comment.user)
-  ) {
-    await addNotification(
-      comment.user,
-      `${currentUser} also commented on a post you're in`,
-      post.id,
-      "comment"
-    );
-    notifiedUsers.add(comment.user);
-  }
-}
 
-        saveLocalData();
-        await loadPostsFromSupabase();
-
-        const updatedPost = posts.find((p) => p.id === post.id);
-        if (activePostId === post.id && updatedPost) {
-          openPostView(updatedPost);
-        }
-      };
-
-      commentInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {
-          commentSubmitBtn.click();
-        }
-      });
-    }
 
     feed.appendChild(clone);
   });
@@ -1747,6 +1721,166 @@ async function createNewTab() {
   await loadRoleplayDoc(data.id);
   joinRoleplayChannel(data.id);
   renderTabs();
+}
+
+function closeThreadPanel() {
+  activeThreadPostId = null;
+  if (threadOverlay) threadOverlay.classList.add("hidden");
+}
+
+
+
+function openThreadPanel(postId, commentId = null) {
+  const post = posts.find((p) => String(p.id) === String(postId));
+  if (!post || !threadOverlay || !threadComments) return;
+
+  activeThreadPostId = post.id;
+
+  const postBio = bios[post.username];
+
+  if (threadTitle) {
+    threadTitle.textContent = `${post.username}'s Comment Thread`;
+  }
+
+  if (threadSubtitle) {
+    threadSubtitle.textContent = `${post.comments.length} comment${post.comments.length === 1 ? "" : "s"}`;
+  }
+
+  if (threadPostMiniAvatar) {
+    threadPostMiniAvatar.textContent = postBio?.letter || post.userLetter || "?";
+  }
+
+  renderThreadComments(post, commentId);
+  threadOverlay.classList.remove("hidden");
+}
+
+
+function renderThreadComments(post, highlightCommentId = null) {
+  if (!threadComments) return;
+
+  threadComments.innerHTML = "";
+
+  post.comments.forEach((comment, index) => {
+    const row = document.createElement("div");
+    row.className = "thread-comment" + (comment.user === currentUser ? " mine" : "");
+    row.dataset.commentId = comment.id || `comment-${index}`;
+
+    const avatar = document.createElement("div");
+    avatar.className = "thread-comment-avatar";
+    avatar.textContent = bios[comment.user]?.letter || comment.user?.[1] || "?";
+
+    const body = document.createElement("div");
+    body.className = "thread-comment-body";
+
+    const user = document.createElement("div");
+    user.className = "thread-comment-user";
+    user.textContent = comment.user;
+
+    const bubble = document.createElement("div");
+    bubble.className = "thread-comment-bubble";
+    bubble.innerHTML = highlightMentions(comment.text || "");
+
+    const time = document.createElement("div");
+    time.className = "thread-comment-time";
+    time.textContent = comment.created_at ? formatTime(comment.created_at) : "";
+
+    body.appendChild(user);
+    body.appendChild(bubble);
+    body.appendChild(time);
+
+    row.appendChild(avatar);
+    row.appendChild(body);
+    threadComments.appendChild(row);
+
+    if (highlightCommentId && row.dataset.commentId === String(highlightCommentId)) {
+      setTimeout(() => {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.style.outline = "2px solid #8b5cf6";
+        row.style.borderRadius = "12px";
+      }, 50);
+    }
+  });
+}
+async function submitThreadReply() {
+  if (!activeThreadPostId || !currentUser || !threadReplyInput) return;
+
+  const text = threadReplyInput.value.trim();
+  if (!text) return;
+
+  const post = posts.find((p) => String(p.id) === String(activeThreadPostId));
+  if (!post) return;
+
+  const updatedComments = [
+    ...post.comments,
+    {
+      id: crypto.randomUUID(),
+      user: currentUser,
+      text,
+      created_at: Date.now()
+    }
+  ];
+
+  const ok = await updatePostInSupabase(post.id, {
+    comments: updatedComments
+  });
+
+  if (!ok) return;
+
+  // 🔥 ADD THIS BLOCK RIGHT HERE
+  if (post.username !== currentUser) {
+    await addNotification(
+      post.username,
+      `${currentUser} commented on your post`,
+      post.id,
+      "comment"
+    );
+  }
+
+  const notifiedUsers = new Set();
+
+  for (const comment of post.comments) {
+    if (
+      comment.user !== currentUser &&
+      comment.user !== post.username &&
+      !notifiedUsers.has(comment.user)
+    ) {
+      await addNotification(
+        comment.user,
+        `${currentUser} also commented on a post you're in`,
+        post.id,
+        "comment"
+      );
+      notifiedUsers.add(comment.user);
+    }
+  }
+  // 🔥 END BLOCK
+
+  threadReplyInput.value = "";
+  await loadPostsFromSupabase();
+
+  const updatedPost = posts.find((p) => String(p.id) === String(activeThreadPostId));
+  if (updatedPost) {
+    renderThreadComments(updatedPost);
+  }
+}
+if (closeThreadBtn) {
+  closeThreadBtn.addEventListener("click", closeThreadPanel);
+}
+
+if (threadBackdrop) {
+  threadBackdrop.addEventListener("click", closeThreadPanel);
+}
+
+if (threadReplyBtn) {
+  threadReplyBtn.addEventListener("click", submitThreadReply);
+}
+
+if (threadReplyInput) {
+  threadReplyInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      submitThreadReply();
+    }
+  });
 }
 
 startApp();
