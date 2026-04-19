@@ -389,14 +389,14 @@ async function addNotification(recipient, message, postId = null, type = "genera
   const sender = currentUser || "System";
 
   const { error } = await supabase.from("notifications").insert({
-    recipient: recipient,
-    sender: sender,
-    message: message,
-    post_id: postId,
-    type: type,
-    read: false,
-    created_at: Date.now()
-  });
+  user: recipient,
+  sender: sender,
+  message: message,
+  post_id: postId,
+  type: type,
+  read: false,
+  created_at: Date.now()
+});
 
   if (error) {
     console.error("Could not add notification:", error.message);
@@ -415,7 +415,7 @@ async function loadNotificationsFromSupabase() {
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
-    .eq("recipient", currentUser)
+    .eq("user", currentUser)
     .order("created_at", { ascending: false });
 
   if (error) {
