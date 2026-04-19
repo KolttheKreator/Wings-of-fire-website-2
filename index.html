@@ -162,7 +162,7 @@
   <button class="action-btn pin-btn hidden" type="button">📌 Pin</button>
   <button class="action-btn delete-btn hidden" type="button">🗑 Delete</button>
   <button class="action-btn edit-btn hidden" type="button">✏️ Edit</button>
-  
+
 </div>
 
         <div class="comments-list"></div>
@@ -311,6 +311,32 @@
       <button id="threadReplyBtn">➤</button>
     </div>
   </aside>
+</div>
+
+<div id="editCommentModal" class="bio-modal hidden">
+  <div class="bio-backdrop" id="editCommentBackdrop"></div>
+
+  <div class="bio-card">
+    <button id="closeEditCommentBtn" class="close-bio-btn" type="button">✖</button>
+
+    <div class="bio-header">
+      <div class="bio-avatar">✏️</div>
+      <div>
+        <h3>Edit Comment</h3>
+        <p class="bio-role">Change your message</p>
+      </div>
+    </div>
+
+    <div class="editor-fields">
+      <textarea
+        id="editCommentInput"
+        class="editor-textarea"
+        placeholder="Edit your comment..."
+      ></textarea>
+
+      <button id="saveEditCommentBtn" class="post-btn" type="button">Save Changes</button>
+    </div>
+  </div>
 </div>
   <script type="module" src="script.js"></script>
 </body>

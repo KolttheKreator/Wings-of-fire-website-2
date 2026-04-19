@@ -24,7 +24,11 @@ const notifList = document.getElementById("notifList");
 
 const topAvatar = document.getElementById("topAvatar");
 const postAvatar = document.getElementById("postAvatar");
-
+const editCommentModal = document.getElementById("editCommentModal");
+const editCommentBackdrop = document.getElementById("editCommentBackdrop");
+const closeEditCommentBtn = document.getElementById("closeEditCommentBtn");
+const editCommentInput = document.getElementById("editCommentInput");
+const saveEditCommentBtn = document.getElementById("saveEditCommentBtn");
 const bioModal = document.getElementById("bioModal");
 const bioBackdrop = document.getElementById("bioBackdrop");
 const closeBioBtn = document.getElementById("closeBioBtn");
@@ -75,7 +79,9 @@ const threadComments = document.getElementById("threadComments");
 const threadReplyInput = document.getElementById("threadReplyInput");
 const threadReplyBtn = document.getElementById("threadReplyBtn");
 const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
-
+let editingCommentPostId = null;
+let editingCommentId = null;
+let editingReplyId = null;
 let activeThreadCommentId = null;
 let currentUser = null;
 let activeThreadPostId = null;
@@ -2014,41 +2020,16 @@ closeThreadPanel();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
-async function editTopLevelComment(postId, commentId) {
+function editTopLevelComment(postId, commentId) {
   const post = posts.find((p) => String(p.id) === String(postId));
   if (!post) return;
 
   const comment = post.comments.find((c) => String(c.id) === String(commentId));
   if (!comment) return;
 
-  const newText = prompt("Edit your comment:", comment.text || "");
-  if (newText === null) return;
-
-  const trimmed = newText.trim();
-  if (!trimmed) return;
-
-  const updatedComments = post.comments.map((c) => {
-    if (String(c.id) !== String(commentId)) return c;
-    return {
-      ...c,
-      text: trimmed
-    };
-  });
-
-  const ok = await updatePostInSupabase(post.id, {
-    comments: updatedComments
-  });
-
-  if (!ok) return;
-
-  await loadPostsFromSupabase();
-
-  const updatedPost = posts.find((p) => String(p.id) === String(postId));
-  if (updatedPost) {
-    openPostView(updatedPost);
-  }
+  openEditCommentModal(comment.text || "", postId, commentId);
 }
-async function editThreadReply(postId, parentCommentId, replyId) {
+function editThreadReply(postId, parentCommentId, replyId) {
   const post = posts.find((p) => String(p.id) === String(postId));
   if (!post) return;
 
@@ -2062,26 +2043,71 @@ async function editThreadReply(postId, parentCommentId, replyId) {
   );
   if (!reply) return;
 
-  const newText = prompt("Edit your reply:", reply.text || "");
-  if (newText === null) return;
+  openEditCommentModal(reply.text || "", postId, parentCommentId, replyId);
+}
+function openEditCommentModal(text, postId, commentId, replyId = null) {
+  editingCommentPostId = postId;
+  editingCommentId = commentId;
+  editingReplyId = replyId;
 
-  const trimmed = newText.trim();
-  if (!trimmed) return;
+  if (editCommentInput) {
+    editCommentInput.value = text || "";
+    editCommentInput.focus();
+  }
 
-  const updatedComments = post.comments.map((comment) => {
-    if (String(comment.id) !== String(parentCommentId)) return comment;
+  if (editCommentModal) {
+    editCommentModal.classList.remove("hidden");
+  }
+}
 
-    return {
-      ...comment,
-      replies: (comment.replies || []).map((r) => {
-        if (String(r.id) !== String(replyId)) return r;
-        return {
-          ...r,
-          text: trimmed
-        };
-      })
-    };
-  });
+function closeEditCommentModal() {
+  editingCommentPostId = null;
+  editingCommentId = null;
+  editingReplyId = null;
+
+  if (editCommentInput) {
+    editCommentInput.value = "";
+  }
+
+  if (editCommentModal) {
+    editCommentModal.classList.add("hidden");
+  }
+}
+async function saveEditedComment() {
+  if (!editingCommentPostId || !editingCommentId || !editCommentInput) return;
+
+  const newText = editCommentInput.value.trim();
+  if (!newText) return;
+
+  const post = posts.find((p) => String(p.id) === String(editingCommentPostId));
+  if (!post) return;
+
+  let updatedComments;
+
+  if (editingReplyId) {
+    updatedComments = post.comments.map((comment) => {
+      if (String(comment.id) !== String(editingCommentId)) return comment;
+
+      return {
+        ...comment,
+        replies: (comment.replies || []).map((reply) => {
+          if (String(reply.id) !== String(editingReplyId)) return reply;
+          return {
+            ...reply,
+            text: newText
+          };
+        })
+      };
+    });
+  } else {
+    updatedComments = post.comments.map((comment) => {
+      if (String(comment.id) !== String(editingCommentId)) return comment;
+      return {
+        ...comment,
+        text: newText
+      };
+    });
+  }
 
   const ok = await updatePostInSupabase(post.id, {
     comments: updatedComments
@@ -2090,18 +2116,44 @@ async function editThreadReply(postId, parentCommentId, replyId) {
   if (!ok) return;
 
   await loadPostsFromSupabase();
+  closeEditCommentModal();
 
-  const updatedPost = posts.find((p) => String(p.id) === String(postId));
+  const updatedPost = posts.find((p) => String(p.id) === String(editingCommentPostId));
   if (!updatedPost) return;
 
-  const updatedParentComment = updatedPost.comments.find(
-    (c) => String(c.id) === String(parentCommentId)
-  );
+  if (editingReplyId) {
+    const updatedParentComment = updatedPost.comments.find(
+      (c) => String(c.id) === String(editingCommentId)
+    );
 
-  if (updatedParentComment) {
-    renderSingleCommentThread(updatedPost, updatedParentComment);
+    if (updatedParentComment) {
+      openThreadPanel(updatedPost.id, updatedParentComment.id);
+    }
+  } else {
+    openPostView(updatedPost);
   }
 }
+if (closeEditCommentBtn) {
+  closeEditCommentBtn.addEventListener("click", closeEditCommentModal);
+}
+
+if (editCommentBackdrop) {
+  editCommentBackdrop.addEventListener("click", closeEditCommentModal);
+}
+
+if (saveEditCommentBtn) {
+  saveEditCommentBtn.addEventListener("click", saveEditedComment);
+}
+
+if (editCommentInput) {
+  editCommentInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      saveEditedComment();
+    }
+  });
+}
+
 startApp();
 renderTabs();
 openDoc(activeDocId);
