@@ -1109,3 +1109,18 @@ body.modal-open {
   color: white;
   cursor: pointer;
 }
+.open-comment-thread-btn {
+  margin-top: 8px;
+  border: none;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.open-comment-thread-btn:hover {
+  background: #ddd6fe;
+}
