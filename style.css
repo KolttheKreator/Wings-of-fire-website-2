@@ -666,51 +666,11 @@ body {
 }
 /* ===== POST VIEW FIXES ===== */
 
-.post-view-card {
-  width: min(720px, calc(100vw - 32px));
-  max-height: 90vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-sizing: border-box;
-  padding: 0;
-}
 
-.post-view-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  box-sizing: border-box;
-}
 
-.post-view-image {
-  width: 100%;
-  max-width: 100%;
-  max-height: 42vh;
-  object-fit: cover;
-  border-radius: 16px;
-  display: block;
-}
 
-.post-view-title {
-  margin: 0;
-  font-size: 2rem;
-  word-break: break-word;
-}
 
-.post-view-description {
-  white-space: pre-wrap;
-  line-height: 1.5;
-  margin: 0;
-  word-break: break-word;
-  overflow-wrap: anywhere;
-}
 
-.post-view-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 
 /* Prevent background scroll when modal is open */
 body.modal-open {
@@ -983,6 +943,16 @@ body.modal-open {
   overflow: hidden;
 }
 
+.thread-comments {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .thread-header {
   display: flex;
   justify-content: space-between;
@@ -1027,15 +997,7 @@ body.modal-open {
   cursor: pointer;
 }
 
-.thread-comments {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  background: #fafafa;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
+
 
 .thread-comment {
   display: flex;
@@ -1126,7 +1088,38 @@ body.modal-open {
 .open-comment-thread-btn:hover {
   background: #ddd6fe;
 }
+.post-view-content {
+  box-sizing: border-box;
+}
 
+.post-view-image {
+  width: 100%;
+  max-width: 100%;
+  max-height: 42vh;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
+}
+
+.post-view-title {
+  margin: 0;
+  font-size: 2rem;
+  word-break: break-word;
+}
+
+.post-view-description {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.post-view-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .post-view-card {
   width: min(1200px, calc(100vw - 32px));
   max-height: 90vh;
@@ -1151,6 +1144,7 @@ body.modal-open {
   padding: 18px;
   overflow-y: auto;
   background: #f8fafc;
+  max-height: 75vh;
 }
 
 .post-comments-header {
@@ -1237,4 +1231,24 @@ body.modal-open {
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
   }
+}
+.card .comments-panel,
+.card .comment-input-row,
+.card .comment-input,
+.card .comment-submit-btn {
+  display: none !important;
+}
+
+.comment-preview {
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.comment-preview:hover {
+  background: #e5e7eb;
 }

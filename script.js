@@ -1766,8 +1766,6 @@ function openThreadPanel(postId, commentId) {
   activeThreadPostId = post.id;
   activeThreadCommentId = comment.id;
 
-  const postBio = bios[post.username];
-
   if (threadTitle) {
     threadTitle.textContent = `${comment.user}'s Thread`;
   }
@@ -1778,7 +1776,7 @@ function openThreadPanel(postId, commentId) {
   }
 
   if (threadPostMiniAvatar) {
-    threadPostMiniAvatar.textContent = postBio?.letter || post.userLetter || "?";
+    threadPostMiniAvatar.textContent = bios[comment.user]?.letter || comment.user?.[1] || "?";
   }
 
   renderSingleCommentThread(post, comment);
@@ -1854,6 +1852,8 @@ function renderSingleCommentThread(post, parentComment) {
     row.appendChild(body);
     threadComments.appendChild(row);
   });
+
+  threadComments.scrollTop = threadComments.scrollHeight;
 }
 async function submitThreadReply() {
   if (!activeThreadPostId || !activeThreadCommentId || !currentUser || !threadReplyInput) return;
@@ -1874,7 +1874,7 @@ async function submitThreadReply() {
         {
           id: crypto.randomUUID(),
           user: currentUser,
-          text,
+          text: text,
           created_at: Date.now()
         }
       ]
@@ -1887,6 +1887,19 @@ async function submitThreadReply() {
 
   if (!ok) return;
 
+  const parentComment = post.comments.find(
+    (comment) => String(comment.id) === String(activeThreadCommentId)
+  );
+
+  if (parentComment && parentComment.user !== currentUser) {
+    await addNotification(
+      parentComment.user,
+      `${currentUser} replied to your thread`,
+      post.id,
+      "thread_reply"
+    );
+  }
+
   threadReplyInput.value = "";
   await loadPostsFromSupabase();
 
@@ -1894,7 +1907,7 @@ async function submitThreadReply() {
   if (!updatedPost) return;
 
   const updatedParentComment = updatedPost.comments.find(
-    (c) => String(c.id) === String(activeThreadCommentId)
+    (comment) => String(comment.id) === String(activeThreadCommentId)
   );
 
   if (updatedParentComment) {
@@ -1904,7 +1917,16 @@ async function submitThreadReply() {
 if (postViewModal) postViewModal.classList.add("hidden");
 if (notifModal) notifModal.classList.add("hidden");
 if (threadOverlay) threadOverlay.classList.add("hidden");
-
+if (threadReplyBtn) {
+  threadReplyBtn.addEventListener("click", submitThreadReply);
+}
+if (threadReplyInput) {
+  threadReplyInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      submitThreadReply();
+    }
+  });
+}
 startApp();
 renderTabs();
 openDoc(activeDocId);
