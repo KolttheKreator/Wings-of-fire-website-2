@@ -118,6 +118,7 @@ let posts = [];
 let editingPostId = null;
 let activeThreadPostId = null;
 let activeThreadCommentId = null;
+let postsChannel = null;
 // =========================
 // Data
 // =========================
@@ -384,34 +385,82 @@ function updateNotificationCount() {
   notifCount.textContent = String(unreadCount);
 }
 
-function addNotification(message, postId = null, type = "general") {
-  notifications.unshift({
-    id: Date.now() + Math.random(),
-    text: message,
-    postId,
-    type,
-    createdAt: Date.now(),
-    read: false
+async function addNotification(recipient, message, postId = null, type = "general") {
+  const sender = currentUser || "System";
+
+  const { error } = await supabase.from("notifications").insert({
+    recipient: recipient,
+    sender: sender,
+    message: message,
+    post_id: postId,
+    type: type,
+    read: false,
+    created_at: Date.now()
   });
 
-  saveLocalData();
+  if (error) {
+    console.error("Could not add notification:", error.message);
+    return false;
+  }
+
+  return true;
+}
+async function loadNotificationsFromSupabase() {
+  if (!currentUser) {
+    notifications = [];
+    updateNotificationCount();
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("recipient", currentUser)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Could not load notifications:", error.message);
+    return;
+  }
+
+  notifications = (data || []).map((notif) => ({
+    id: notif.id,
+    recipient: notif.recipient,
+    sender: notif.sender,
+    text: notif.message,
+    postId: notif.post_id,
+    type: notif.type,
+    createdAt: notif.created_at,
+    read: notif.read
+  }));
+
   updateNotificationCount();
 }
 
-function markNotificationAsRead(notificationId) {
-  const notif = notifications.find((n) => n.id === notificationId);
-  if (!notif) return;
+async function markNotificationAsRead(notificationId) {
+  const { error } = await supabase
+    .from("notifications")
+    .update({ read: true })
+    .eq("id", notificationId);
 
-  notif.read = true;
-  saveLocalData();
+  if (error) {
+    console.error("Could not mark notification as read:", error.message);
+    return;
+  }
+
+  const notif = notifications.find((n) => n.id === notificationId);
+  if (notif) {
+    notif.read = true;
+  }
+
   updateNotificationCount();
 }
 
-function openNotificationTarget(notificationId) {
+async function openNotificationTarget(notificationId) {
   const notif = notifications.find((n) => n.id === notificationId);
   if (!notif) return;
 
-  markNotificationAsRead(notificationId);
+  await markNotificationAsRead(notificationId);
   closeNotifications();
 
   if (!notif.postId) return;
@@ -425,7 +474,7 @@ function openNotificationTarget(notificationId) {
   openPostView(targetPost);
 }
 
-function openNotifications() {
+async function openNotifications() {
   if (!notifModal || !notifList) return;
 
   notifList.innerHTML = "";
@@ -474,13 +523,21 @@ function openNotifications() {
       div.appendChild(text);
       div.appendChild(time);
 
-      div.addEventListener("click", function (e) {
-        e.stopPropagation();
+      div.addEventListener("click", async function (e) {
+  e.stopPropagation();
+
+  if (notif.postId) {
+    await openNotificationTarget(notif.id);
+  } else {
+    await markNotificationAsRead(notif.id);
+    closeNotifications();
+  }
+});
 
         if (notif.postId) {
-          openNotificationTarget(notif.id);
+          await openNotificationTarget(notif.id);
         } else {
-          markNotificationAsRead(notif.id);
+          await markNotificationAsRead(notif.id);
           closeNotifications();
         }
       });
@@ -1088,7 +1145,8 @@ function renderPosts() {
 
     if (username) {
       username.textContent = post.username;
-      username.onclick = function () {
+      username.onclick = function (e) {
+        e.stopPropagation();
         openBio(post.username);
       };
     }
@@ -1102,7 +1160,9 @@ function renderPosts() {
       }
     }
 
-    if (timeStamp) timeStamp.textContent = formatTime(post.createdAt);
+    if (timeStamp) {
+      timeStamp.textContent = formatTime(post.createdAt);
+    }
 
     if (cardText) {
       const preview = post.description
@@ -1190,14 +1250,15 @@ function renderPosts() {
       }
     }
 
+    // Hide feed comment junk so cards don't stretch
     if (commentsList) {
       commentsList.innerHTML = "";
-      post.comments.forEach((comment) => {
-        const div = document.createElement("div");
-        div.className = "comment";
-        div.innerHTML = `<b>${comment.user}</b> ${highlightMentions(comment.text || "")}`;
-        commentsList.appendChild(div);
-      });
+      commentsList.style.display = "none";
+    }
+
+    if (commentsPanel) {
+      commentsPanel.classList.add("hidden");
+      commentsPanel.style.display = "none";
     }
 
     if (likeBtn) {
@@ -1211,7 +1272,11 @@ function renderPosts() {
         if (!ok) return;
 
         if (currentUser && post.username !== currentUser) {
-          addNotification(`${currentUser} liked ${post.username}'s post`, post.id, "like");
+          addNotification(
+            `${currentUser} liked ${post.username}'s post`,
+            post.id,
+            "like"
+          );
         }
 
         await loadPostsFromSupabase();
@@ -1223,12 +1288,13 @@ function renderPosts() {
       };
     }
 
+    // Comment button opens the full post view
     if (commentToggleBtn) {
-  commentToggleBtn.onclick = function (e) {
-    e.stopPropagation();
-    openPostView(post);
-  };
-}
+      commentToggleBtn.onclick = function (e) {
+        e.stopPropagation();
+        openPostView(post);
+      };
+    }
 
     if (commentSubmitBtn && commentInput) {
       commentSubmitBtn.onclick = async function (e) {
@@ -1255,7 +1321,11 @@ function renderPosts() {
         if (!ok) return;
 
         if (post.username !== currentUser) {
-          addNotification(`${currentUser} commented on your post`, post.id, "comment");
+          addNotification(
+            `${currentUser} commented on your post`,
+            post.id,
+            "comment"
+          );
         }
 
         saveLocalData();
@@ -1728,6 +1798,7 @@ async function startApp() {
   updateNotificationCount();
   updateAreaVisibility();
   await loadPostsFromSupabase();
+  subscribeToPostChanges();
 
   if (currentUser && bios[currentUser]) {
     hideLoginScreen();
@@ -1735,6 +1806,7 @@ async function startApp() {
   } else {
     currentUser = null;
     showLoginScreen();
+    
 
     if (keywordInput) {
       keywordInput.value = "";
@@ -1745,6 +1817,50 @@ async function startApp() {
       loginMessage.textContent = "";
     }
   }
+}
+
+function subscribeToPostChanges() {
+  if (postsChannel) return;
+
+  postsChannel = supabase
+    .channel("public-posts-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "posts"
+      },
+      async () => {
+        await loadPostsFromSupabase();
+
+        if (activePostId) {
+          const updatedPost = posts.find((p) => p.id === activePostId);
+          if (updatedPost) {
+            openPostView(updatedPost);
+          }
+        }
+
+        if (activeThreadPostId && activeThreadCommentId) {
+          const updatedPost = posts.find(
+            (p) => String(p.id) === String(activeThreadPostId)
+          );
+
+          if (updatedPost) {
+            const updatedComment = updatedPost.comments.find(
+              (c) => String(c.id) === String(activeThreadCommentId)
+            );
+
+            if (updatedComment) {
+              renderSingleCommentThread(updatedPost, updatedComment);
+            }
+          }
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log("Supabase live status:", status);
+    });
 }
 
 startApp();
