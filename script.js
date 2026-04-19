@@ -1928,6 +1928,10 @@ if (threadReplyInput) {
     }
   });
 }
+
+if (closeThreadBtn) {
+  closeThreadBtn.addEventListener("click", closeThreadPanel);
+}
 startApp();
 renderTabs();
 openDoc(activeDocId);
