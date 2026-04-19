@@ -641,7 +641,7 @@ async function addNotification(targetUser, message, postId = null, type = "gener
     post_id: postId,
     type: type,
     read: false,
-    created_at: new Date().toISOString()
+    created_at: Date.now()
   });
 
   if (error) {
