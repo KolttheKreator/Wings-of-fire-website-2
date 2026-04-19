@@ -547,10 +547,24 @@ function openPostView(post) {
       <div class="comment-thread-text">${highlightMentions(comment.text || "")}</div>
       <div class="comment-thread-meta">${replyCount} repl${replyCount === 1 ? "y" : "ies"} • Open thread</div>
     `;
+    if (comment.user === currentUser) {
+  const editCommentBtn = document.createElement("button");
+  editCommentBtn.type = "button";
+  editCommentBtn.className = "action-btn edit-btn";
+  editCommentBtn.textContent = "✏️ Edit";
+
+  editCommentBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    editTopLevelComment(post.id, comment.id);
+  });
+
+  card.appendChild(editCommentBtn);
+}
 
     card.addEventListener("click", function () {
       openThreadPanel(post.id, comment.id);
     });
+    
 
     postViewComments.appendChild(card);
   });
@@ -1857,6 +1871,18 @@ function renderSingleCommentThread(post, parentComment) {
 
   const replies = Array.isArray(parentComment.replies) ? parentComment.replies : [];
 
+  if (reply.user === currentUser) {
+  const editReplyBtn = document.createElement("button");
+  editReplyBtn.type = "button";
+  editReplyBtn.className = "action-btn";
+  editReplyBtn.textContent = "✏️ Edit";
+
+  editReplyBtn.addEventListener("click", function () {
+    editThreadReply(post.id, parentComment.id, reply.id);
+  });
+
+  body.appendChild(editReplyBtn);
+}
   replies.forEach((reply) => {
     const row = document.createElement("div");
     row.className = "thread-comment" + (reply.user === currentUser ? " mine" : "");
@@ -1984,6 +2010,94 @@ function openEditPostModal(post) {
 closeThreadPanel();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+async function editTopLevelComment(postId, commentId) {
+  const post = posts.find((p) => String(p.id) === String(postId));
+  if (!post) return;
+
+  const comment = post.comments.find((c) => String(c.id) === String(commentId));
+  if (!comment) return;
+
+  const newText = prompt("Edit your comment:", comment.text || "");
+  if (newText === null) return;
+
+  const trimmed = newText.trim();
+  if (!trimmed) return;
+
+  const updatedComments = post.comments.map((c) => {
+    if (String(c.id) !== String(commentId)) return c;
+    return {
+      ...c,
+      text: trimmed
+    };
+  });
+
+  const ok = await updatePostInSupabase(post.id, {
+    comments: updatedComments
+  });
+
+  if (!ok) return;
+
+  await loadPostsFromSupabase();
+
+  const updatedPost = posts.find((p) => String(p.id) === String(postId));
+  if (updatedPost) {
+    openPostView(updatedPost);
+  }
+}
+async function editThreadReply(postId, parentCommentId, replyId) {
+  const post = posts.find((p) => String(p.id) === String(postId));
+  if (!post) return;
+
+  const parentComment = post.comments.find(
+    (c) => String(c.id) === String(parentCommentId)
+  );
+  if (!parentComment) return;
+
+  const reply = (parentComment.replies || []).find(
+    (r) => String(r.id) === String(replyId)
+  );
+  if (!reply) return;
+
+  const newText = prompt("Edit your reply:", reply.text || "");
+  if (newText === null) return;
+
+  const trimmed = newText.trim();
+  if (!trimmed) return;
+
+  const updatedComments = post.comments.map((comment) => {
+    if (String(comment.id) !== String(parentCommentId)) return comment;
+
+    return {
+      ...comment,
+      replies: (comment.replies || []).map((r) => {
+        if (String(r.id) !== String(replyId)) return r;
+        return {
+          ...r,
+          text: trimmed
+        };
+      })
+    };
+  });
+
+  const ok = await updatePostInSupabase(post.id, {
+    comments: updatedComments
+  });
+
+  if (!ok) return;
+
+  await loadPostsFromSupabase();
+
+  const updatedPost = posts.find((p) => String(p.id) === String(postId));
+  if (!updatedPost) return;
+
+  const updatedParentComment = updatedPost.comments.find(
+    (c) => String(c.id) === String(parentCommentId)
+  );
+
+  if (updatedParentComment) {
+    renderSingleCommentThread(updatedPost, updatedParentComment);
+  }
 }
 startApp();
 renderTabs();

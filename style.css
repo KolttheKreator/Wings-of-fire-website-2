@@ -1252,3 +1252,11 @@ body.modal-open {
 .comment-preview:hover {
   background: #e5e7eb;
 }
+.edit-btn {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.edit-btn:hover {
+  background: #bfdbfe;
+}
