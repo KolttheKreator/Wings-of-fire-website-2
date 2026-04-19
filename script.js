@@ -1921,8 +1921,7 @@ function renderSingleCommentThread(post, parentComment) {
   threadComments.appendChild(row);
 });
 
-  threadComments.scrollTop = threadComments.scrollHeight;
-}
+  
 async function submitThreadReply() {
   if (!activeThreadPostId || !activeThreadCommentId || !currentUser || !threadReplyInput) return;
 
