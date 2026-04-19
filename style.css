@@ -466,10 +466,7 @@ body {
   background: #fecaca;
 }
 
-.comments-panel {
-  border-top: 1px solid #e5e7eb;
-  padding-top: 12px;
-}
+
 
 .comments-list {
   display: flex;
@@ -486,27 +483,10 @@ body {
   line-height: 1.4;
 }
 
-.comment-input-row {
-  display: flex;
-  gap: 8px;
-}
 
-.comment-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: #f3f4f6;
-  border-radius: 12px;
-  padding: 11px 12px;
-}
 
-.comment-submit-btn {
-  background: var(--green);
-  color: white;
-  border-radius: 12px;
-  padding: 11px 14px;
-  font-weight: bold;
-}
+
+
 
 .bio-modal {
   position: fixed;
@@ -653,9 +633,7 @@ body {
   display: block;
 }
 
-.hidden {
-  display: none !important;
-}
+
 
 @media (max-width: 700px) {
   .hero {
