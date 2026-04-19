@@ -1232,12 +1232,7 @@ body.modal-open {
     border-bottom: 1px solid #e5e7eb;
   }
 }
-.card .comments-panel,
-.card .comment-input-row,
-.card .comment-input,
-.card .comment-submit-btn {
-  display: none !important;
-}
+
 
 .comment-preview {
   background: #f3f4f6;
@@ -1287,26 +1282,35 @@ body.modal-open {
   overflow-wrap: anywhere;
 }
 
-.card {
-  height: 520px; /* tweak this number to taste */
-  display: flex;
-  flex-direction: column;
+.card .comments-panel {
+  display: none;
 }
-.card-body {
+
+.card .comments-panel.show {
+  display: block;
+}
+
+.card .comment-input-row {
   display: flex;
-  flex-direction: column;
+  gap: 8px;
+}
+
+.card .comment-input {
   flex: 1;
+  border: none;
+  outline: none;
+  background: #f3f4f6;
+  border-radius: 12px;
+  padding: 11px 12px;
 }
-.comments-panel {
-  max-height: 150px;
-  overflow-y: auto;
-}
-.card-text {
-  display: -webkit-box;
-  -webkit-line-clamp: 3; /* number of lines */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.card-actions {
-  margin-top: auto;
+
+.card .comment-submit-btn {
+  display: inline-block;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-weight: bold;
+  cursor: pointer;
 }
