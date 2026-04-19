@@ -1871,56 +1871,54 @@ function renderSingleCommentThread(post, parentComment) {
 
   const replies = Array.isArray(parentComment.replies) ? parentComment.replies : [];
 
-  
-
-  body.appendChild(editReplyBtn);
-}
   replies.forEach((reply) => {
-  const row = document.createElement("div");
-  row.className = "thread-comment" + (reply.user === currentUser ? " mine" : "");
+    const row = document.createElement("div");
+    row.className = "thread-comment" + (reply.user === currentUser ? " mine" : "");
 
-  const avatar = document.createElement("div");
-  avatar.className = "thread-comment-avatar";
-  avatar.textContent = bios[reply.user]?.letter || reply.user?.[1] || "?";
+    const avatar = document.createElement("div");
+    avatar.className = "thread-comment-avatar";
+    avatar.textContent = bios[reply.user]?.letter || reply.user?.[1] || "?";
 
-  const body = document.createElement("div");
-  body.className = "thread-comment-body";
+    const body = document.createElement("div");
+    body.className = "thread-comment-body";
 
-  const user = document.createElement("div");
-  user.className = "thread-comment-user";
-  user.textContent = reply.user;
+    const user = document.createElement("div");
+    user.className = "thread-comment-user";
+    user.textContent = reply.user;
 
-  const bubble = document.createElement("div");
-  bubble.className = "thread-comment-bubble";
-  bubble.innerHTML = highlightMentions(reply.text || "");
+    const bubble = document.createElement("div");
+    bubble.className = "thread-comment-bubble";
+    bubble.innerHTML = highlightMentions(reply.text || "");
 
-  const time = document.createElement("div");
-  time.className = "thread-comment-time";
-  time.textContent = reply.created_at ? formatTime(reply.created_at) : "";
+    const time = document.createElement("div");
+    time.className = "thread-comment-time";
+    time.textContent = reply.created_at ? formatTime(reply.created_at) : "";
 
-  body.appendChild(user);
-  body.appendChild(bubble);
-  body.appendChild(time);
+    body.appendChild(user);
+    body.appendChild(bubble);
+    body.appendChild(time);
 
-  if (reply.user === currentUser) {
-    const editReplyBtn = document.createElement("button");
-    editReplyBtn.type = "button";
-    editReplyBtn.className = "action-btn edit-btn";
-    editReplyBtn.textContent = "✏️ Edit";
+    if (reply.user === currentUser) {
+      const editReplyBtn = document.createElement("button");
+      editReplyBtn.type = "button";
+      editReplyBtn.className = "action-btn edit-btn";
+      editReplyBtn.textContent = "✏️ Edit";
 
-    editReplyBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      editThreadReply(post.id, parentComment.id, reply.id);
-    });
+      editReplyBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        editThreadReply(post.id, parentComment.id, reply.id);
+      });
 
-    body.appendChild(editReplyBtn);
-  }
+      body.appendChild(editReplyBtn);
+    }
 
-  row.appendChild(avatar);
-  row.appendChild(body);
-  threadComments.appendChild(row);
-});
+    row.appendChild(avatar);
+    row.appendChild(body);
+    threadComments.appendChild(row);
+  });
 
+  threadComments.scrollTop = threadComments.scrollHeight;
+}
   
 async function submitThreadReply() {
   if (!activeThreadPostId || !activeThreadCommentId || !currentUser || !threadReplyInput) return;
