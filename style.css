@@ -1286,3 +1286,27 @@ body.modal-open {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
+
+.card {
+  height: 520px; /* tweak this number to taste */
+  display: flex;
+  flex-direction: column;
+}
+.card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.comments-panel {
+  max-height: 150px;
+  overflow-y: auto;
+}
+.card-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* number of lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-actions {
+  margin-top: auto;
+}
