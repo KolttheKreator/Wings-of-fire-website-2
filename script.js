@@ -1223,12 +1223,12 @@ function renderPosts() {
       };
     }
 
-    if (commentToggleBtn && commentsPanel) {
-      commentToggleBtn.onclick = function (e) {
-        e.stopPropagation();
-        commentsPanel.classList.toggle("hidden");
-      };
-    }
+    if (commentToggleBtn) {
+  commentToggleBtn.onclick = function (e) {
+    e.stopPropagation();
+    openPostView(post);
+  };
+}
 
     if (commentSubmitBtn && commentInput) {
       commentSubmitBtn.onclick = async function (e) {

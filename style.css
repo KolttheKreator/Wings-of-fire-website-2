@@ -1314,3 +1314,9 @@ body.modal-open {
   font-weight: bold;
   cursor: pointer;
 }
+
+/* Hide comments on feed cards */
+.card .comments-list,
+.card .comments-panel {
+  display: none !important;
+}
