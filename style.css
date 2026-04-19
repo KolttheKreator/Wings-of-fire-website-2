@@ -1260,3 +1260,13 @@ body.modal-open {
 .edit-btn:hover {
   background: #bfdbfe;
 }
+#marketArea {
+  display: none;
+}
+
+.docs-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}

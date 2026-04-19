@@ -5,6 +5,9 @@ const supabaseUrl = "https://cvjkxmgfiaoetepwfyqi.supabase.co";
 const supabaseKey = "sb_publishable_92kz51al3ZuihOY047N5Gw_zRqOGQ2v";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// =========================
+// DOM
+// =========================
 const feed = document.getElementById("feed");
 const postBtn = document.getElementById("postBtn");
 const postText = document.getElementById("postText");
@@ -18,17 +21,12 @@ const mentionList = document.getElementById("mentionList");
 
 const notifBtn = document.getElementById("notifBtn");
 const notifModal = document.getElementById("notifModal");
-const notifBackdrop = document.getElementById("notifBackdrop");
 const closeNotifBtn = document.getElementById("closeNotifBtn");
 const notifList = document.getElementById("notifList");
 
 const topAvatar = document.getElementById("topAvatar");
 const postAvatar = document.getElementById("postAvatar");
-const editCommentModal = document.getElementById("editCommentModal");
-const editCommentBackdrop = document.getElementById("editCommentBackdrop");
-const closeEditCommentBtn = document.getElementById("closeEditCommentBtn");
-const editCommentInput = document.getElementById("editCommentInput");
-const saveEditCommentBtn = document.getElementById("saveEditCommentBtn");
+
 const bioModal = document.getElementById("bioModal");
 const bioBackdrop = document.getElementById("bioBackdrop");
 const closeBioBtn = document.getElementById("closeBioBtn");
@@ -69,27 +67,50 @@ const postViewDescription = document.getElementById("postViewDescription");
 const postViewComments = document.getElementById("postViewComments");
 const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
-const threadOverlay = document.getElementById("threadOverlay");
-const threadBackdrop = document.getElementById("threadBackdrop");
-const threadPanel = document.getElementById("threadPanel");
-const closeThreadBtn = document.getElementById("closeThreadBtn");
-const threadTitle = document.getElementById("threadTitle");
-const threadSubtitle = document.getElementById("threadSubtitle");
-const threadComments = document.getElementById("threadComments");
-const threadReplyInput = document.getElementById("threadReplyInput");
-const threadReplyBtn = document.getElementById("threadReplyBtn");
-const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
-let editingCommentPostId = null;
-let editingCommentId = null;
-let editingReplyId = null;
-let activeThreadCommentId = null;
+
+// Area switching
+const areaSelect = document.getElementById("areaSelect");
+const feedArea = document.getElementById("feedArea");
+const roleplayingArea = document.getElementById("roleplayingArea");
+const marketArea = document.getElementById("marketArea");
+
+// Roleplay editor
+const roleplayEditor = document.getElementById("roleplayEditor");
+const docTabs = document.getElementById("docTabs");
+const newDocTabBtn = document.getElementById("newDocTabBtn");
+const fontSelect = document.getElementById("fontSelect");
+const fontSizeSelect = document.getElementById("fontSizeSelect");
+const textColorPicker = document.getElementById("textColorPicker");
+const highlightColorPicker = document.getElementById("highlightColorPicker");
+const boldBtn = document.getElementById("boldBtn");
+const italicBtn = document.getElementById("italicBtn");
+const centerBtn = document.getElementById("centerBtn");
+
+// Market editor
+const marketEditor = document.getElementById("marketEditor");
+const marketTabs = document.getElementById("marketTabs");
+const newMarketTabBtn = document.getElementById("newMarketTabBtn");
+const marketFontSelect = document.getElementById("marketFontSelect");
+const marketFontSizeSelect = document.getElementById("marketFontSizeSelect");
+const marketTextColorPicker = document.getElementById("marketTextColorPicker");
+const marketHighlightColorPicker = document.getElementById("marketHighlightColorPicker");
+const marketBoldBtn = document.getElementById("marketBoldBtn");
+const marketItalicBtn = document.getElementById("marketItalicBtn");
+const marketCenterBtn = document.getElementById("marketCenterBtn");
+
+// =========================
+// State
+// =========================
 let currentUser = null;
-let activeThreadPostId = null;
-let editingPostId = null;
+let notifications = [];
 let selectedImageData = "";
 let activePostId = null;
 let posts = [];
+let editingPostId = null;
 
+// =========================
+// Data
+// =========================
 const profileKeywords = {
   kraken: "@Kolt",
   wing: "@Jay",
@@ -106,10 +127,9 @@ const profileKeywords = {
   skin: "@Alexei",
   ded: "@Sabrina",
   ghost: "@Sarah",
-  revived: "@Deirdre"
-
-
- 
+  revived: "@Deirdre",
+  squid_staff: "@Kraken_Staff",
+  crow_staff: "@Coding_Crow"
 };
 
 const bios = {
@@ -123,7 +143,7 @@ const bios = {
   },
   "@Aanya": {
     letter: "A",
-    role: "Master Sketcher", 
+    role: "Master Sketcher",
     bio: "Very good at sketching. Super fun to speak with.",
     likes: "Sketching, dragons, lore, chatting",
     tag: "Artist",
@@ -156,9 +176,9 @@ const bios = {
   "@Cathy": {
     letter: "C",
     role: "Smart One",
-    bio: "The smart one. Also called Lokidottir, much to   her annoyance.",
+    bio: "The smart one. Also called Lokidottir, much to her annoyance.",
     likes: "Debating",
-    tag: "The Lokidottir",   
+    tag: "The Lokidottir",
     image: ""
   },
   "@Kaiju": {
@@ -168,7 +188,7 @@ const bios = {
     likes: "Coding_Crow Wyatt, art, Kolt",
     tag: "KAIJU",
     image: ""
-  }, 
+  },
   "@Cae": {
     letter: "C",
     role: "Quiet Nice Kid",
@@ -224,15 +244,34 @@ const bios = {
     likes: "Being Dead",
     tag: "Ded",
     image: ""
+  },
+  "@Coding_Crow": {
+    letter: "C",
+    role: "Staff",
+    bio: "Hello! I helped make this website! Ask me anything!",
+    likes: "Coding, Writing, Shinies",
+    tag: "How did a crow get on staff?",
+    image: ""
+  },
+  "@Kraken_Staff": {
+    letter: "K",
+    role: "Staff",
+    bio: "Hello! I helped make this website! Ask me anything!",
+    likes: "Coding",
+    tag: "Squid",
+    image: ""
   }
 };
 
-
 const users = Object.keys(bios);
 
+// =========================
+// Local storage
+// =========================
 function saveLocalData() {
   try {
     localStorage.setItem("dragon_bios", JSON.stringify(bios));
+    localStorage.setItem("dragon_notifications", JSON.stringify(notifications));
     localStorage.setItem("dragon_currentUser", currentUser || "");
   } catch (error) {
     console.error("Could not save local data:", error);
@@ -242,6 +281,7 @@ function saveLocalData() {
 function loadLocalData() {
   try {
     const savedBios = localStorage.getItem("dragon_bios");
+    const savedNotifications = localStorage.getItem("dragon_notifications");
     const savedCurrentUser = localStorage.getItem("dragon_currentUser");
 
     if (savedBios) {
@@ -253,6 +293,13 @@ function loadLocalData() {
       }
     }
 
+    if (savedNotifications) {
+      const parsedNotifications = JSON.parse(savedNotifications);
+      if (Array.isArray(parsedNotifications)) {
+        notifications = parsedNotifications;
+      }
+    }
+
     if (savedCurrentUser) {
       currentUser = savedCurrentUser;
     }
@@ -261,24 +308,9 @@ function loadLocalData() {
   }
 }
 
-
-
-
-
-function closeNotifications() {
-  if (notifModal) {
-    notifModal.classList.add("hidden");
-  }
-}
-
-
-
-
-
-
-
-
-
+// =========================
+// Helpers
+// =========================
 function formatTime(createdAt) {
   const timeValue =
     typeof createdAt === "string" ? new Date(createdAt).getTime() : Number(createdAt);
@@ -321,6 +353,142 @@ function getSortedPosts() {
   return sorted;
 }
 
+function shouldNotifyForPost(post, actingUser) {
+  if (!currentUser) return false;
+  if (post.username === actingUser) return false;
+  if (post.username === currentUser) return true;
+
+  const iAlreadyCommented = post.comments.some(
+    (comment) => comment.user === currentUser
+  );
+
+  return iAlreadyCommented;
+}
+
+// =========================
+// Notifications
+// =========================
+function updateNotificationCount() {
+  if (!notifCount) return;
+  const unreadCount = notifications.filter((notif) => !notif.read).length;
+  notifCount.textContent = String(unreadCount);
+}
+
+function addNotification(message, postId = null, type = "general") {
+  notifications.unshift({
+    id: Date.now() + Math.random(),
+    text: message,
+    postId,
+    type,
+    createdAt: Date.now(),
+    read: false
+  });
+
+  saveLocalData();
+  updateNotificationCount();
+}
+
+function markNotificationAsRead(notificationId) {
+  const notif = notifications.find((n) => n.id === notificationId);
+  if (!notif) return;
+
+  notif.read = true;
+  saveLocalData();
+  updateNotificationCount();
+}
+
+function openNotificationTarget(notificationId) {
+  const notif = notifications.find((n) => n.id === notificationId);
+  if (!notif) return;
+
+  markNotificationAsRead(notificationId);
+  closeNotifications();
+
+  if (!notif.postId) return;
+
+  const targetPost = posts.find((p) => String(p.id) === String(notif.postId));
+  if (!targetPost) {
+    alert("That post could not be found.");
+    return;
+  }
+
+  openPostView(targetPost);
+}
+
+function openNotifications() {
+  if (!notifModal || !notifList) return;
+
+  notifList.innerHTML = "";
+
+  if (notifications.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "comment";
+    empty.textContent = "No notifications yet.";
+    notifList.appendChild(empty);
+  } else {
+    notifications.forEach((notif) => {
+      const div = document.createElement("button");
+      div.type = "button";
+      div.className = "comment notif-item";
+      div.style.cursor = notif.postId ? "pointer" : "default";
+      div.style.border = "none";
+      div.style.width = "100%";
+      div.style.textAlign = "left";
+      div.style.background = "#f9fafb";
+      div.style.padding = "12px 14px 12px 18px";
+      div.style.position = "relative";
+      div.style.overflow = "hidden";
+      div.style.borderRadius = "14px";
+
+      if (!notif.read) {
+        const marker = document.createElement("span");
+        marker.style.position = "absolute";
+        marker.style.left = "0";
+        marker.style.top = "0";
+        marker.style.bottom = "0";
+        marker.style.width = "4px";
+        marker.style.background = "#7c3aed";
+        marker.style.pointerEvents = "none";
+        div.appendChild(marker);
+      }
+
+      const text = document.createElement("div");
+      text.textContent = notif.text;
+
+      const time = document.createElement("div");
+      time.style.fontSize = "12px";
+      time.style.opacity = "0.7";
+      time.style.marginTop = "4px";
+      time.textContent = formatTime(notif.createdAt);
+
+      div.appendChild(text);
+      div.appendChild(time);
+
+      div.addEventListener("click", function (e) {
+        e.stopPropagation();
+
+        if (notif.postId) {
+          openNotificationTarget(notif.id);
+        } else {
+          markNotificationAsRead(notif.id);
+          closeNotifications();
+        }
+      });
+
+      notifList.appendChild(div);
+    });
+  }
+
+  notifModal.classList.remove("hidden");
+}
+
+function closeNotifications() {
+  if (notifModal) notifModal.classList.add("hidden");
+}
+
+// =========================
+// Login / profile
+// =========================
 function showLoginScreen() {
   if (loginScreen) loginScreen.style.display = "flex";
 }
@@ -345,11 +513,10 @@ async function signInWithKeyword() {
   }
 
   currentUser = matchedUser;
-  subscribeToNotificationChanges();
   saveLocalData();
   hideLoginScreen();
   refreshMainProfileUI();
-  await updateNotificationCount();
+  updateNotificationCount();
   await loadPostsFromSupabase();
 
   if (loginMessage) loginMessage.textContent = "";
@@ -458,6 +625,9 @@ function closeProfileEditor() {
   if (profileEditorModal) profileEditorModal.classList.add("hidden");
 }
 
+// =========================
+// Mentions
+// =========================
 function showMentionList(filter = "") {
   if (!mentionList) return;
 
@@ -499,104 +669,13 @@ function insertMention(user) {
   if (mentionList) mentionList.classList.add("hidden");
 
   postText.focus();
-
   const newCursorPos = (newBefore + " ").length;
   postText.setSelectionRange(newCursorPos, newCursorPos);
 }
 
-function openPostView(post) {
-  activePostId = post.id;
-
-  if (postViewImage) {
-    if (post.image) {
-      postViewImage.src = post.image;
-      postViewImage.style.display = "block";
-    } else {
-      postViewImage.style.display = "none";
-    }
-  }
-
-  const bio = bios[post.username];
-
-  if (postViewAvatar) {
-    if (bio && bio.image) {
-      postViewAvatar.innerHTML = `<img src="${bio.image}" alt="Profile picture">`;
-    } else {
-      postViewAvatar.textContent = bio?.letter || post.userLetter || "?";
-    }
-  }
-
-  if (postViewUsername) postViewUsername.textContent = post.username;
-  if (postViewTime) postViewTime.textContent = formatTime(post.createdAt);
-  if (postViewTitle) postViewTitle.textContent = String(post.text || "");
-  if (postViewDescription) postViewDescription.textContent = String(post.description || "");
-
-  if (postViewComments) {
-  postViewComments.innerHTML = "";
-
-  post.comments.forEach((comment) => {
-    const card = document.createElement("div");
-    card.className = "comment-thread-card";
-
-    const replyCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
-    const avatarLetter = bios[comment.user]?.letter || comment.user?.[1] || "?";
-
-    card.innerHTML = `
-      <div class="comment-thread-top">
-        <div class="comment-thread-avatar">${avatarLetter}</div>
-        <div>
-          <div class="comment-thread-user">${comment.user}</div>
-          <div class="comment-thread-time">${comment.created_at ? formatTime(comment.created_at) : ""}</div>
-        </div>
-      </div>
-
-      <div class="comment-thread-text">${highlightMentions(comment.text || "")}</div>
-      <div class="comment-thread-meta">${replyCount} repl${replyCount === 1 ? "y" : "ies"} • Open thread</div>
-    `;
-    if (comment.user === currentUser) {
-  const editCommentBtn = document.createElement("button");
-  editCommentBtn.type = "button";
-  editCommentBtn.className = "action-btn edit-btn";
-  editCommentBtn.textContent = "✏️ Edit";
-
-  editCommentBtn.addEventListener("click", function (e) {
-    e.stopPropagation();
-    editTopLevelComment(post.id, comment.id);
-  });
-
-  card.appendChild(editCommentBtn);
-}
-
-    card.addEventListener("click", function () {
-      openThreadPanel(post.id, comment.id);
-    });
-    
-
-    postViewComments.appendChild(card);
-  });
-}
-
-  if (postViewCommentInput) {
-    postViewCommentInput.value = "";
-  }
-
-  if (postViewModal) {
-    postViewModal.classList.remove("hidden");
-  }
-
-  document.body.classList.add("modal-open");
-}
-
-function closePostView() {
-  activePostId = null;
-
-  if (postViewModal) {
-    postViewModal.classList.add("hidden");
-  }
-
-  document.body.classList.remove("modal-open");
-}
-
+// =========================
+// Posts / Supabase
+// =========================
 async function loadPostsFromSupabase() {
   const { data, error } = await supabase
     .from("posts")
@@ -623,179 +702,6 @@ async function loadPostsFromSupabase() {
 
   renderPosts();
 }
-async function addNotification(targetUser, message, postId = null, type = "general") {
-  console.log("addNotification called:", {
-    targetUser,
-    message,
-    postId,
-    type,
-    currentUser
-  });
-
-  if (!targetUser) return;
-
-  const { error } = await supabase.from("notifications").insert({
-    target_user: targetUser,
-    actor_user: currentUser,
-    text: message,
-    post_id: postId,
-    type: type,
-    read: false,
-    created_at: Date.now()
-  });
-
-  if (error) {
-    console.error("Could not add notification:", error.message, error);
-    return;
-  }
-
-  console.log("notification insert worked");
-
-  if (currentUser === targetUser) {
-    await updateNotificationCount();
-  }
-}
-async function getCurrentUserNotifications() {
-  if (!currentUser) return [];
-
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("*")
-    .eq("target_user", currentUser)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Could not load notifications:", error.message);
-    return [];
-  }
-
-  return data || [];
-}
-async function updateNotificationCount() {
-  if (!notifCount || !currentUser) return;
-
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: false })
-    .eq("target_user", currentUser)
-    .eq("read", false);
-
-  if (error) {
-    console.error("Could not count notifications:", error.message);
-    notifCount.textContent = "0";
-    return;
-  }
-
-  notifCount.textContent = data ? String(data.length) : "0";
-}
-
-async function openNotifications() {
-  if (!notifModal || !notifList) return;
-
-  const myNotifications = await getCurrentUserNotifications();
-  notifList.innerHTML = "";
-
-  if (myNotifications.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "comment";
-    empty.textContent = "No notifications yet.";
-    notifList.appendChild(empty);
-  } else {
-    myNotifications.forEach((notif) => {
-      const div = document.createElement("button");
-      div.type = "button";
-      div.className = "comment notif-item";
-      div.style.cursor = notif.post_id ? "pointer" : "default";
-      div.style.border = "none";
-      div.style.width = "100%";
-      div.style.textAlign = "left";
-      div.style.background = "#f9fafb";
-      div.style.padding = "12px 14px 12px 18px";
-      div.style.position = "relative";
-      div.style.overflow = "hidden";
-      div.style.borderRadius = "14px";
-
-      if (!notif.read) {
-        const marker = document.createElement("span");
-        marker.style.position = "absolute";
-        marker.style.left = "0";
-        marker.style.top = "0";
-        marker.style.bottom = "0";
-        marker.style.width = "4px";
-        marker.style.background = "#7c3aed";
-        marker.style.pointerEvents = "none";
-        div.appendChild(marker);
-      }
-
-      const text = document.createElement("div");
-      text.textContent = notif.text;
-
-      const time = document.createElement("div");
-      time.style.fontSize = "12px";
-      time.style.opacity = "0.7";
-      time.style.marginTop = "4px";
-      time.textContent = formatTime(notif.created_at);
-
-      div.appendChild(text);
-      div.appendChild(time);
-
-      div.addEventListener("click", async function (e) {
-        e.stopPropagation();
-
-        if (notif.post_id) {
-          await openNotificationTarget(notif.id);
-        } else {
-          await markNotificationAsRead(notif.id);
-          closeNotifications();
-        }
-      });
-
-      notifList.appendChild(div);
-    });
-  }
-
-  notifModal.classList.remove("hidden");
-}
-
-async function markNotificationAsRead(notificationId) {
-  const { error } = await supabase
-    .from("notifications")
-    .update({ read: true })
-    .eq("id", notificationId);
-
-  if (error) {
-    console.error("Could not mark notification as read:", error.message);
-    return;
-  }
-
-  await updateNotificationCount();
-}
-async function openNotificationTarget(notificationId) {
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("*")
-    .eq("id", notificationId)
-    .single();
-
-  if (error || !data) {
-    console.error("Could not load notification target:", error?.message);
-    return;
-  }
-
-  await markNotificationAsRead(notificationId);
-  closeNotifications();
-
-  if (!data.post_id) return;
-
-  const targetPost = posts.find((p) => String(p.id) === String(data.post_id));
-  if (!targetPost) {
-    alert("That post could not be found.");
-    return;
-  }
-
-  openPostView(targetPost);
-}
-
 
 async function addPostToSupabase(newPost) {
   const { error } = await supabase.from("posts").insert({
@@ -848,22 +754,60 @@ async function deletePostFromSupabase(postId) {
 
   return true;
 }
-function shouldNotifyForPost(post, actingUser) {
-  if (!currentUser) return false;
 
-  // don't notify yourself
-  if (post.username === actingUser) return false;
+// =========================
+// Post view / comments
+// =========================
+function openPostView(post) {
+  activePostId = post.id;
 
-  // notify if it's your post
-  if (post.username === currentUser) return true;
+  if (postViewImage) {
+    if (post.image) {
+      postViewImage.src = post.image;
+      postViewImage.style.display = "block";
+    } else {
+      postViewImage.style.display = "none";
+    }
+  }
 
-  // notify if you've already commented on it before
-  const iAlreadyCommented = post.comments.some(
-    (comment) => comment.user === currentUser
-  );
+  const bio = bios[post.username];
 
-  return iAlreadyCommented;
+  if (postViewAvatar) {
+    if (bio && bio.image) {
+      postViewAvatar.innerHTML = `<img src="${bio.image}" alt="Profile picture">`;
+    } else {
+      postViewAvatar.textContent = bio?.letter || post.userLetter || "?";
+    }
+  }
+
+  if (postViewUsername) postViewUsername.textContent = post.username;
+  if (postViewTime) postViewTime.textContent = formatTime(post.createdAt);
+  if (postViewTitle) postViewTitle.textContent = String(post.text || "");
+  if (postViewDescription) postViewDescription.textContent = String(post.description || "");
+
+  if (postViewComments) {
+    postViewComments.innerHTML = "";
+
+    post.comments.forEach((comment) => {
+      const div = document.createElement("div");
+      div.className = "comment";
+      div.innerHTML = `<b>${comment.user}</b> ${highlightMentions(comment.text || "")}`;
+      postViewComments.appendChild(div);
+    });
+  }
+
+  if (postViewCommentInput) postViewCommentInput.value = "";
+
+  if (postViewModal) postViewModal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
 }
+
+function closePostView() {
+  activePostId = null;
+  if (postViewModal) postViewModal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
 async function submitPostViewComment() {
   if (!activePostId || !currentUser || !postViewCommentInput) return;
 
@@ -874,15 +818,13 @@ async function submitPostViewComment() {
   if (!post) return;
 
   const updatedComments = [
-  ...post.comments,
-  {
-    id: crypto.randomUUID(),
-    user: currentUser,
-    text: text,
-    created_at: Date.now(),
-    replies: []   // 👈 THIS is the magic
-  }
-];
+    ...post.comments,
+    {
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now(),
+      user: currentUser,
+      text
+    }
+  ];
 
   const ok = await updatePostInSupabase(post.id, {
     comments: updatedComments
@@ -891,77 +833,23 @@ async function submitPostViewComment() {
   if (!ok) return;
 
   if (post.username !== currentUser) {
-    await addNotification(
-      post.username,
-      `${currentUser} commented on your post`,
-      post.id,
-      "comment"
-    );
-  }
-
-  const notifiedUsers = new Set();
-
-  for (const comment of post.comments) {
-    if (
-      comment.user !== currentUser &&
-      comment.user !== post.username &&
-      !notifiedUsers.has(comment.user)
-    ) {
-      await addNotification(
-        comment.user,
-        `${currentUser} also commented on a post you're in`,
-        post.id,
-        "comment"
-      );
-      notifiedUsers.add(comment.user);
-    }
+    addNotification(`${currentUser} commented on your post`, post.id, "comment");
   }
 
   saveLocalData();
   await loadPostsFromSupabase();
-  await updateNotificationCount();
 
   const updatedPost = posts.find((p) => p.id === activePostId);
-  if (updatedPost) {
-    openPostView(updatedPost);
-  }
-}
-let notificationsChannel = null;
-
-function subscribeToNotificationChanges() {
-  if (notificationsChannel || !currentUser) return;
-
-  notificationsChannel = supabase
-    .channel("public-notifications-live")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "notifications"
-      },
-      async (payload) => {
-        const newRow = payload.new;
-        const oldRow = payload.old;
-
-        if (
-          (newRow && newRow.target_user === currentUser) ||
-          (oldRow && oldRow.target_user === currentUser)
-        ) {
-          await updateNotificationCount();
-        }
-      }
-    )
-    .subscribe((status) => {
-      console.log("Notification live status:", status);
-    });
+  if (updatedPost) openPostView(updatedPost);
 }
 
+// =========================
+// Render posts
+// =========================
 function renderPosts() {
   if (!feed || !template) return;
 
   feed.innerHTML = "";
-
   const sortedPosts = getSortedPosts();
 
   sortedPosts.forEach((post) => {
@@ -981,8 +869,10 @@ function renderPosts() {
     const pinBtn = clone.querySelector(".pin-btn");
     const deleteBtn = clone.querySelector(".delete-btn");
     const editBtn = clone.querySelector(".edit-btn");
+    const commentsPanel = clone.querySelector(".comments-panel");
     const commentsList = clone.querySelector(".comments-list");
-
+    const commentInput = clone.querySelector(".comment-input");
+    const commentSubmitBtn = clone.querySelector(".comment-submit-btn");
 
     if (card) {
       card.style.cursor = "pointer";
@@ -992,6 +882,7 @@ function renderPosts() {
           e.target.closest(".comment-toggle-btn") ||
           e.target.closest(".pin-btn") ||
           e.target.closest(".delete-btn") ||
+          e.target.closest(".edit-btn") ||
           e.target.closest(".comment-submit-btn") ||
           e.target.closest(".comment-input") ||
           e.target.closest(".username")
@@ -1001,55 +892,6 @@ function renderPosts() {
 
         openPostView(post);
       });
-    }
-    if (commentsList) {
-  commentsList.innerHTML = "";
-
-  const latestComments = post.comments.slice(-2);
-
-  latestComments.forEach((comment, index) => {
-    const preview = document.createElement("div");
-    preview.className = "comment-preview";
-    preview.textContent = `${comment.user}: ${comment.text}`;
-
-    preview.addEventListener("click", function (e) {
-  e.stopPropagation();
-  openPostView(post);
-  setTimeout(() => {
-    openThreadPanel(post.id, comment.id);
-  }, 50);
-});
-
-    commentsList.appendChild(preview);
-  });
-}
-
-    if (pinBtn) {
-      if (post.username === currentUser) {
-        pinBtn.classList.remove("hidden");
-        pinBtn.textContent = post.pinned ? "📌 Unpin" : "📌 Pin";
-
-        pinBtn.onclick = async function () {
-          const myPinnedPosts = posts.filter(
-            (p) => p.username === currentUser && p.pinned
-          );
-
-          if (!post.pinned && myPinnedPosts.length >= 2) {
-            alert("You can only have 2 pinned posts.");
-            return;
-          }
-
-          const ok = await updatePostInSupabase(post.id, {
-            pinned: !post.pinned
-          });
-
-          if (!ok) return;
-
-          await loadPostsFromSupabase();
-        };
-      } else {
-        pinBtn.classList.add("hidden");
-      }
     }
 
     if (cardImage) {
@@ -1090,11 +932,54 @@ function renderPosts() {
     if (likeCount) likeCount.textContent = post.likes;
     if (commentCount) commentCount.textContent = post.comments.length;
 
+    if (tagPill) {
+      if (post.pinned) {
+        tagPill.textContent = "Pinned";
+        tagPill.style.background = "#dcfce7";
+        tagPill.style.color = "#166534";
+      } else {
+        tagPill.textContent = "Post";
+        tagPill.style.background = "#ede9fe";
+        tagPill.style.color = "#6d28d9";
+      }
+    }
+
+    if (pinBtn) {
+      if (post.username === currentUser) {
+        pinBtn.classList.remove("hidden");
+        pinBtn.textContent = post.pinned ? "📌 Unpin" : "📌 Pin";
+
+        pinBtn.onclick = async function (e) {
+          e.stopPropagation();
+
+          const myPinnedPosts = posts.filter(
+            (p) => p.username === currentUser && p.pinned
+          );
+
+          if (!post.pinned && myPinnedPosts.length >= 2) {
+            alert("You can only have 2 pinned posts.");
+            return;
+          }
+
+          const ok = await updatePostInSupabase(post.id, {
+            pinned: !post.pinned
+          });
+
+          if (!ok) return;
+          await loadPostsFromSupabase();
+        };
+      } else {
+        pinBtn.classList.add("hidden");
+      }
+    }
+
     if (deleteBtn) {
       if (post.username === currentUser) {
         deleteBtn.classList.remove("hidden");
 
-        deleteBtn.onclick = async function () {
+        deleteBtn.onclick = async function (e) {
+          e.stopPropagation();
+
           const confirmed = confirm("Delete this post?");
           if (!confirmed) return;
 
@@ -1108,76 +993,327 @@ function renderPosts() {
         deleteBtn.classList.add("hidden");
       }
     }
+
     if (editBtn) {
-  if (post.username === currentUser) {
-    editBtn.classList.remove("hidden");
+      if (post.username === currentUser) {
+        editBtn.classList.remove("hidden");
 
-    editBtn.onclick = function (e) {
-      e.stopPropagation();
-      openEditPostModal(post);
-    };
-  } else {
-    editBtn.classList.add("hidden");
-  }
-}
-
-    if (tagPill) {
-      if (!post.pinned) {
-        tagPill.textContent = "Post";
-        tagPill.style.background = "#ede9fe";
-        tagPill.style.color = "#6d28d9";
+        editBtn.onclick = function (e) {
+          e.stopPropagation();
+          openEditPostModal(post);
+        };
       } else {
-        tagPill.textContent = "Pinned";
-        tagPill.style.background = "#dcfce7";
-        tagPill.style.color = "#166534";
+        editBtn.classList.add("hidden");
       }
     }
 
+    if (commentsList) {
+      commentsList.innerHTML = "";
+      post.comments.forEach((comment) => {
+        const div = document.createElement("div");
+        div.className = "comment";
+        div.innerHTML = `<b>${comment.user}</b> ${highlightMentions(comment.text || "")}`;
+        commentsList.appendChild(div);
+      });
+    }
+
     if (likeBtn) {
-  likeBtn.onclick = async function () {
-    const ok = await updatePostInSupabase(post.id, {
-      likes: post.likes + 1
-    });
+      likeBtn.onclick = async function (e) {
+        e.stopPropagation();
 
-    if (!ok) return;
+        const ok = await updatePostInSupabase(post.id, {
+          likes: post.likes + 1
+        });
 
-    if (post.username !== currentUser) {
-      await addNotification(
-        post.username,
-        `${currentUser} liked your post`,
-        post.id,
-        "like"
-      );
+        if (!ok) return;
+
+        if (currentUser && post.username !== currentUser) {
+          addNotification(`${currentUser} liked ${post.username}'s post`, post.id, "like");
+        }
+
+        await loadPostsFromSupabase();
+
+        const updatedPost = posts.find((p) => p.id === post.id);
+        if (activePostId === post.id && updatedPost) {
+          openPostView(updatedPost);
+        }
+      };
     }
 
-    await loadPostsFromSupabase();
-
-    const updatedPost = posts.find((p) => p.id === post.id);
-    if (activePostId === post.id && updatedPost) {
-      openPostView(updatedPost);
+    if (commentToggleBtn && commentsPanel) {
+      commentToggleBtn.onclick = function (e) {
+        e.stopPropagation();
+        commentsPanel.classList.toggle("hidden");
+      };
     }
-  };
-}
 
-        
-    if (commentToggleBtn) {
-  commentToggleBtn.onclick = function (e) {
-    e.stopPropagation();
-    openPostView(post);
-  };
-}
+    if (commentSubmitBtn && commentInput) {
+      commentSubmitBtn.onclick = async function (e) {
+        e.stopPropagation();
 
-    
+        const text = commentInput.value.trim();
+        if (!text || !currentUser) return;
 
+        const updatedComments = [
+          ...post.comments,
+          {
+            id: crypto.randomUUID ? crypto.randomUUID() : Date.now(),
+            user: currentUser,
+            text
+          }
+        ];
 
+        const ok = await updatePostInSupabase(post.id, {
+          comments: updatedComments
+        });
+
+        if (!ok) return;
+
+        if (post.username !== currentUser) {
+          addNotification(`${currentUser} commented on your post`, post.id, "comment");
+        }
+
+        saveLocalData();
+        await loadPostsFromSupabase();
+
+        const updatedPost = posts.find((p) => p.id === post.id);
+        if (activePostId === post.id && updatedPost) {
+          openPostView(updatedPost);
+        }
+      };
+
+      commentInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commentSubmitBtn.click();
+        }
+      });
+    }
 
     feed.appendChild(clone);
   });
 }
 
+// =========================
+// Post editing
+// =========================
+function openEditPostModal(post) {
+  editingPostId = post.id;
+
+  if (postText) postText.value = post.text || "";
+  if (postDescription) postDescription.value = post.description || "";
+
+  selectedImageData = post.image || "";
+  if (fileName) {
+    fileName.textContent = post.image ? "Current image selected" : "No file chosen";
+  }
+
+  if (postBtn) postBtn.textContent = "Save Edit";
+
+  closePostView();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// =========================
+// Area switching
+// =========================
+function updateAreaVisibility() {
+  if (!areaSelect) return;
+
+  const selected = areaSelect.value;
+
+  if (feedArea) feedArea.style.display = selected === "feedArea" ? "block" : "none";
+  if (roleplayingArea) roleplayingArea.style.display = selected === "roleplayingArea" ? "block" : "none";
+  if (marketArea) marketArea.style.display = selected === "marketArea" ? "block" : "none";
+}
+
+// =========================
+// Shared rich text editor setup
+// =========================
+document.addEventListener("DOMContentLoaded", () => {
+  try {
+    document.execCommand("styleWithCSS", false, true);
+  } catch (e) {
+    console.log("styleWithCSS not supported");
+  }
+});
+
+function makeEditorSystem({
+  editor,
+  tabsWrap,
+  newTabBtn,
+  fontSelectEl,
+  fontSizeSelectEl,
+  textColorPickerEl,
+  highlightColorPickerEl,
+  boldBtnEl,
+  italicBtnEl,
+  centerBtnEl,
+  initialDocs,
+  newDocTitlePrefix
+}) {
+  let docs = [...initialDocs];
+  let activeDocId = docs[0]?.id ?? 1;
+  let savedRange = null;
+
+  function saveSelection() {
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      savedRange = selection.getRangeAt(0);
+    }
+  }
+
+  function restoreSelection() {
+    if (savedRange) {
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(savedRange);
+    }
+  }
+
+  function saveActiveDocContent() {
+    const activeDoc = docs.find((doc) => doc.id === activeDocId);
+    if (activeDoc && editor) {
+      activeDoc.content = editor.innerHTML;
+    }
+  }
+
+  function formatText(command, value = null) {
+    if (!editor) return;
+    editor.focus();
+    restoreSelection();
+    document.execCommand(command, false, value);
+    saveSelection();
+    saveActiveDocContent();
+  }
+
+  function openDoc(docId) {
+    saveActiveDocContent();
+    activeDocId = docId;
+
+    const activeDoc = docs.find((doc) => doc.id === activeDocId);
+    if (activeDoc && editor) {
+      editor.innerHTML = activeDoc.content;
+    }
+
+    renderTabs();
+  }
+
+  function renderTabs() {
+    if (!tabsWrap) return;
+
+    tabsWrap.innerHTML = "";
+
+    docs.forEach((doc) => {
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "doc-tab" + (doc.id === activeDocId ? " active" : "");
+      tab.textContent = doc.title;
+      tab.addEventListener("click", () => openDoc(doc.id));
+      tabsWrap.appendChild(tab);
+    });
+  }
+
+  function createNewTab() {
+    saveActiveDocContent();
+
+    const newId = Date.now() + Math.random();
+    const newNumber = docs.length + 1;
+
+    docs.push({
+      id: newId,
+      title: `${newDocTitlePrefix} ${newNumber}`,
+      content: `<h1>${newDocTitlePrefix} ${newNumber}</h1><p>Write something legendary...</p>`
+    });
+
+    activeDocId = newId;
+    renderTabs();
+    openDoc(newId);
+  }
+
+  if (newTabBtn) newTabBtn.addEventListener("click", createNewTab);
+
+  if (editor) {
+    editor.addEventListener("input", saveActiveDocContent);
+    editor.addEventListener("mouseup", saveSelection);
+    editor.addEventListener("keyup", saveSelection);
+    editor.addEventListener("mouseleave", saveSelection);
+  }
+
+  if (fontSelectEl) {
+    fontSelectEl.addEventListener("change", () => formatText("fontName", fontSelectEl.value));
+  }
+
+  if (fontSizeSelectEl) {
+    fontSizeSelectEl.addEventListener("change", () => formatText("fontSize", fontSizeSelectEl.value));
+  }
+
+  if (textColorPickerEl) {
+    textColorPickerEl.addEventListener("input", () => formatText("foreColor", textColorPickerEl.value));
+  }
+
+  if (highlightColorPickerEl) {
+    highlightColorPickerEl.addEventListener("input", () => formatText("hiliteColor", highlightColorPickerEl.value));
+  }
+
+  if (boldBtnEl) boldBtnEl.addEventListener("click", () => formatText("bold"));
+  if (italicBtnEl) italicBtnEl.addEventListener("click", () => formatText("italic"));
+  if (centerBtnEl) centerBtnEl.addEventListener("click", () => formatText("justifyCenter"));
+
+  renderTabs();
+  openDoc(activeDocId);
+
+  return { renderTabs, openDoc };
+}
+
+makeEditorSystem({
+  editor: roleplayEditor,
+  tabsWrap: docTabs,
+  newTabBtn: newDocTabBtn,
+  fontSelectEl: fontSelect,
+  fontSizeSelectEl: fontSizeSelect,
+  textColorPickerEl: textColorPicker,
+  highlightColorPickerEl: highlightColorPicker,
+  boldBtnEl: boldBtn,
+  italicBtnEl: italicBtn,
+  centerBtnEl: centerBtn,
+  initialDocs: [
+    {
+      id: 1,
+      title: "Doc 1",
+      content: "<h1>🐉 Roleplay Zone</h1><p>Start your story here...</p>"
+    }
+  ],
+  newDocTitlePrefix: "Doc"
+});
+
+makeEditorSystem({
+  editor: marketEditor,
+  tabsWrap: marketTabs,
+  newTabBtn: newMarketTabBtn,
+  fontSelectEl: marketFontSelect,
+  fontSizeSelectEl: marketFontSizeSelect,
+  textColorPickerEl: marketTextColorPicker,
+  highlightColorPickerEl: marketHighlightColorPicker,
+  boldBtnEl: marketBoldBtn,
+  italicBtnEl: marketItalicBtn,
+  centerBtnEl: marketCenterBtn,
+  initialDocs: [
+    {
+      id: 1,
+      title: "Market 1",
+      content: "<h1>The Market</h1><p>Peruse the stalls!</p>"
+    }
+  ],
+  newDocTitlePrefix: "Market"
+});
+
+// =========================
+// Events
+// =========================
 if (fileInput) {
   fileInput.addEventListener("change", function () {
-    const file = fileInput.files[0];
+    const file = fileInput.files?.[0];
 
     if (!file) {
       selectedImageData = "";
@@ -1189,7 +1325,7 @@ if (fileInput) {
 
     const reader = new FileReader();
     reader.onload = function (event) {
-      selectedImageData = event.target.result;
+      selectedImageData = event.target?.result || "";
     };
     reader.readAsDataURL(file);
   });
@@ -1197,7 +1333,7 @@ if (fileInput) {
 
 if (profilePicInput) {
   profilePicInput.addEventListener("change", function () {
-    const file = profilePicInput.files[0];
+    const file = profilePicInput.files?.[0];
 
     if (!file) {
       if (profilePicName) profilePicName.textContent = "No profile pic chosen";
@@ -1208,7 +1344,7 @@ if (profilePicInput) {
 
     const reader = new FileReader();
     reader.onload = function (event) {
-      setProfileImage(event.target.result);
+      setProfileImage(event.target?.result || "");
       saveLocalData();
     };
     reader.readAsDataURL(file);
@@ -1231,20 +1367,11 @@ if (postText) {
 }
 
 document.addEventListener("click", function (e) {
-  if (
-    mentionList &&
-    !mentionList.contains(e.target) &&
-    e.target !== postText
-  ) {
+  if (mentionList && !mentionList.contains(e.target) && e.target !== postText) {
     mentionList.classList.add("hidden");
   }
 
-  if (
-    notifModal &&
-    notifBtn &&
-    !notifModal.contains(e.target) &&
-    !notifBtn.contains(e.target)
-  ) {
+  if (notifModal && notifBtn && !notifModal.contains(e.target) && !notifBtn.contains(e.target)) {
     closeNotifications();
   }
 });
@@ -1263,8 +1390,8 @@ if (postBtn) {
 
     if (editingPostId) {
       const ok = await updatePostInSupabase(editingPostId, {
-        text: text,
-        description: description,
+        text,
+        description,
         image: selectedImageData || ""
       });
 
@@ -1289,8 +1416,8 @@ if (postBtn) {
     const newPost = {
       username: currentUser,
       userLetter: bios[currentUser].letter || "?",
-      text: text,
-      description: description,
+      text,
+      description,
       image: img,
       likes: 0,
       comments: [],
@@ -1304,10 +1431,7 @@ if (postBtn) {
     const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
     mentions.forEach((mention) => {
       if (bios[mention] && mention !== currentUser) {
-        addNotification(
-          mention,
-          `${currentUser} mentioned you in a post`
-        );
+        addNotification(`${currentUser} mentioned ${mention} in a post`);
       }
     });
 
@@ -1340,9 +1464,7 @@ if (saveProfileBtn) {
   };
 }
 
-if (sortSelect) {
-  sortSelect.onchange = renderPosts;
-}
+if (sortSelect) sortSelect.onchange = renderPosts;
 
 if (topAvatar) {
   topAvatar.onclick = function () {
@@ -1355,7 +1477,7 @@ if (notifBtn) {
   notifBtn.addEventListener("click", function (e) {
     e.stopPropagation();
 
-    if (notifModal.classList.contains("hidden")) {
+    if (notifModal?.classList.contains("hidden")) {
       openNotifications();
     } else {
       closeNotifications();
@@ -1363,111 +1485,47 @@ if (notifBtn) {
   });
 }
 
-let postsChannel = null;
-
-function subscribeToPostChanges() {
-  if (postsChannel) return;
-
-  postsChannel = supabase
-    .channel("public-posts-live")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "posts"
-      },
-      async () => {
-        await loadPostsFromSupabase();
-
-        if (activePostId) {
-          const updatedPost = posts.find((p) => p.id === activePostId);
-          if (updatedPost) {
-            openPostView(updatedPost);
-          }
-        }
-      }
-    )
-    .subscribe((status) => {
-      console.log("Supabase live status:", status);
-    });
-}
-
-
-
-if (closeNotifBtn) {
-  closeNotifBtn.addEventListener("click", closeNotifications);
-}
-
-if (closeBioBtn) {
-  closeBioBtn.onclick = closeBio;
-}
-
-if (bioBackdrop) {
-  bioBackdrop.onclick = closeBio;
-}
-
-if (closeProfileEditorBtn) {
-  closeProfileEditorBtn.onclick = closeProfileEditor;
-}
-
-if (profileEditorBackdrop) {
-  profileEditorBackdrop.onclick = closeProfileEditor;
-}
-
-if (loginKeywordBtn) {
-  loginKeywordBtn.addEventListener("click", signInWithKeyword);
-}
+if (closeNotifBtn) closeNotifBtn.addEventListener("click", closeNotifications);
+if (closeBioBtn) closeBioBtn.onclick = closeBio;
+if (bioBackdrop) bioBackdrop.onclick = closeBio;
+if (closeProfileEditorBtn) closeProfileEditorBtn.onclick = closeProfileEditor;
+if (profileEditorBackdrop) profileEditorBackdrop.onclick = closeProfileEditor;
+if (loginKeywordBtn) loginKeywordBtn.addEventListener("click", signInWithKeyword);
 
 if (keywordInput) {
   keywordInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      signInWithKeyword();
-    }
+    if (e.key === "Enter") signInWithKeyword();
   });
 }
 
-if (logoutBtn) {
-  logoutBtn.addEventListener("click", logout);
-}
-document.addEventListener("click", function (e) {
-  if (
-    notifModal &&
-    notifBtn &&
-    !notifModal.contains(e.target) &&
-    !notifBtn.contains(e.target)
-  ) {
-    notifModal.classList.add("hidden");
-  }
-});
-if (closePostViewBtn) {
-  closePostViewBtn.addEventListener("click", closePostView);
-}
-
-if (postViewBackdrop) {
-  postViewBackdrop.addEventListener("click", closePostView);
-}
-
-if (postViewCommentBtn) {
-  postViewCommentBtn.addEventListener("click", submitPostViewComment);
-}
+if (logoutBtn) logoutBtn.addEventListener("click", logout);
+if (closePostViewBtn) closePostViewBtn.addEventListener("click", closePostView);
+if (postViewBackdrop) postViewBackdrop.addEventListener("click", closePostView);
+if (postViewCommentBtn) postViewCommentBtn.addEventListener("click", submitPostViewComment);
 
 if (postViewCommentInput) {
   postViewCommentInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
+      e.preventDefault();
       submitPostViewComment();
     }
   });
 }
 
+if (areaSelect) {
+  areaSelect.addEventListener("change", updateAreaVisibility);
+}
 
+// =========================
+// App start
+// =========================
 async function startApp() {
   loadLocalData();
-  await updateNotificationCount();
-  subscribeToPostChanges();
+  updateNotificationCount();
+  updateAreaVisibility();
+  await loadPostsFromSupabase();
 
   if (currentUser && bios[currentUser]) {
-    subscribeToNotificationChanges();
     hideLoginScreen();
     refreshMainProfileUI();
   } else {
@@ -1483,688 +1541,6 @@ async function startApp() {
       loginMessage.textContent = "";
     }
   }
-
-  await loadPostsFromSupabase();
-  await startRoleplayLive();
 }
 
-const rpPresenceBar = document.getElementById("rpPresenceBar");
-
-let currentRoleplayDocId = "1d88ba60-352c-4f04-969e-aab6ac3c2e11";
-let rpChannel = null;
-let rpSaveTimer = null;
-let isApplyingRemoteUpdate = false;
-
-
-
-
-
-
-const areaSelect = document.getElementById("areaSelect");
-const feedArea = document.getElementById("feedArea");
-const roleplayingArea = document.getElementById("roleplayingArea");
-
-areaSelect.addEventListener("change", () => {
-  if (areaSelect.value === "roleplayingArea") {
-    feedArea.style.display = "none";
-    roleplayingArea.style.display = "block";
-  } else {
-    feedArea.style.display = "block";
-    roleplayingArea.style.display = "none";
-  }
-});
-
-
-const roleplayEditor = document.getElementById("roleplayEditor");
-const docTabs = document.getElementById("docTabs");
-const newDocTabBtn = document.getElementById("newDocTabBtn");
-const fontSelect = document.getElementById("fontSelect");
-const fontSizeSelect = document.getElementById("fontSizeSelect");
-const textColorPicker = document.getElementById("textColorPicker");
-const highlightColorPicker = document.getElementById("highlightColorPicker");
-const boldBtn = document.getElementById("boldBtn");
-const italicBtn = document.getElementById("italicBtn");
-const centerBtn = document.getElementById("centerBtn");
-
-if (centerBtn) {
-  centerBtn.addEventListener("click", () => {
-    formatText("justifyCenter");
-  });
-}
-if (boldBtn) {
-  boldBtn.addEventListener("click", () => {
-    formatText("bold");
-  });
-}
-
-if (italicBtn) {
-  italicBtn.addEventListener("click", () => {
-    formatText("italic");
-  });
-}
-let docs = [
-  {
-    id: "1d88ba60-352c-4f04-969e-aab6ac3c2e11",
-    title: "Main RP Doc",
-    content: ""
-  }
-];
-
-let activeDocId = currentRoleplayDocId;
-let savedRange = null;
-
-// Makes execCommand use inline CSS when possible
-document.addEventListener("DOMContentLoaded", () => {
-  try {
-    document.execCommand("styleWithCSS", false, true);
-  } catch (e) {
-    console.log("styleWithCSS not supported");
-  }
-});
-
-function saveSelection() {
-  const selection = window.getSelection();
-  if (selection.rangeCount > 0) {
-    savedRange = selection.getRangeAt(0);
-  }
-}
-
-function restoreSelection() {
-  if (savedRange) {
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(savedRange);
-  }
-}
-
-function formatText(command, value = null) {
-  roleplayEditor.focus();   // important
-  restoreSelection();       // SUPER important
-  document.execCommand(command, false, value);
-  saveSelection();
-  saveActiveDocContent();
-}
-
-function saveActiveDocContent() {
-  const activeDoc = docs.find(doc => doc.id === activeDocId);
-  if (activeDoc) {
-    activeDoc.content = roleplayEditor.innerHTML;
-  }
-}
-
-function openDoc(docId) {
-  saveActiveDocContent();
-  activeDocId = docId;
-
-  const activeDoc = docs.find(doc => doc.id === activeDocId);
-  if (activeDoc) {
-    roleplayEditor.innerHTML = activeDoc.content;
-  }
-
-  renderTabs();
-}
-
-function renderTabs() {
-  docTabs.innerHTML = "";
-
-  docs.forEach(doc => {
-    const tab = document.createElement("button");
-    tab.type = "button";
-    tab.className = "doc-tab" + (doc.id === activeDocId ? " active" : "");
-    tab.textContent = doc.title;
-
-    tab.addEventListener("click", () => {
-      openDoc(doc.id);
-    });
-
-    docTabs.appendChild(tab);
-  });
-}
-
-
-if (newDocTabBtn) {
-  newDocTabBtn.addEventListener("click", createNewTab);
-}
-
-if (roleplayEditor) {
-  roleplayEditor.addEventListener("input", saveActiveDocContent);
-  roleplayEditor.addEventListener("mouseup", saveSelection);
-  roleplayEditor.addEventListener("keyup", saveSelection);
-  roleplayEditor.addEventListener("mouseleave", saveSelection);
-}
-
-if (fontSelect) {
-  fontSelect.addEventListener("change", () => {
-    formatText("fontName", fontSelect.value);
-  });
-}
-
-if (fontSizeSelect) {
-  fontSizeSelect.addEventListener("change", () => {
-    formatText("fontSize", fontSizeSelect.value);
-  });
-}
-
-if (textColorPicker) {
-  textColorPicker.addEventListener("input", () => {
-    formatText("foreColor", textColorPicker.value);
-  });
-}
-
-if (highlightColorPicker) {
-  highlightColorPicker.addEventListener("input", () => {
-    formatText("hiliteColor", highlightColorPicker.value);
-  });
-}
-
-
-async function loadRoleplayDoc(docId) {
-  const { data, error } = await supabase
-    .from("roleplay_docs")
-    .select("id, title, content")
-    .eq("id", docId)
-    .single();
-
-  if (error) {
-    console.error("Could not load RP doc:", error);
-    return;
-  }
-
-  if (roleplayEditor) {
-    roleplayEditor.innerHTML = data.content || "";
-  }
-}
-
-
-async function saveRoleplayDoc(docId, content) {
-  const { error } = await supabase
-    .from("roleplay_docs")
-    .update({
-      content,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", docId);
-
-  if (error) {
-    console.error("Could not save RP doc:", error);
-  }
-}
-
-function updateRoleplayPresenceUI() {
-  if (!rpChannel || !rpPresenceBar) return;
-
-  const state = rpChannel.presenceState();
-  const users = Object.values(state)
-    .flat()
-    .map((entry) => entry.user)
-    .filter(Boolean);
-
-  if (users.length === 0) {
-    rpPresenceBar.textContent = "Nobody here yet";
-    return;
-  }
-
-  rpPresenceBar.textContent = "Editing now: " + users.join(", ");
-}
-
-
-function joinRoleplayChannel(docId) {
-  if (rpChannel) {
-    supabase.removeChannel(rpChannel);
-    rpChannel = null;
-  }
-
-  rpChannel = supabase.channel(`rp-doc-${docId}`);
-
-  rpChannel
-    .on("broadcast", { event: "doc-update" }, ({ payload }) => {
-      if (!payload) return;
-      if (payload.sender === currentUser) return;
-      if (!roleplayEditor) return;
-
-      isApplyingRemoteUpdate = true;
-      roleplayEditor.innerHTML = payload.content || "";
-      isApplyingRemoteUpdate = false;
-    })
-    .on("presence", { event: "sync" }, () => {
-      updateRoleplayPresenceUI();
-    })
-    .on("presence", { event: "join" }, () => {
-      updateRoleplayPresenceUI();
-    })
-    .on("presence", { event: "leave" }, () => {
-      updateRoleplayPresenceUI();
-    })
-    .subscribe(async (status) => {
-      console.log("RP channel status:", status);
-
-      if (status === "SUBSCRIBED") {
-        await rpChannel.track({
-          user: currentUser || "Guest",
-          online_at: new Date().toISOString()
-        });
-      }
-    });
-}
-
-function broadcastRoleplayUpdate() {
-  if (!rpChannel || !roleplayEditor || !currentRoleplayDocId) return;
-  if (isApplyingRemoteUpdate) return;
-
-  const content = roleplayEditor.innerHTML;
-
-  rpChannel.send({
-    type: "broadcast",
-    event: "doc-update",
-    payload: {
-      docId: currentRoleplayDocId,
-      content,
-      sender: currentUser || "Guest"
-    }
-  });
-
-  clearTimeout(rpSaveTimer);
-  rpSaveTimer = setTimeout(() => {
-    saveRoleplayDoc(currentRoleplayDocId, content);
-  }, 1000);
-}
-if (roleplayEditor) {
-  roleplayEditor.addEventListener("input", () => {
-    broadcastRoleplayUpdate();
-  });
-}
-
-async function startRoleplayLive() {
-  if (!roleplayEditor || !currentRoleplayDocId) return;
-
-  await loadRoleplayDoc(currentRoleplayDocId);
-  joinRoleplayChannel(currentRoleplayDocId);
-}
-
-async function createNewTab() {
-  const newNumber = docs.length + 1;
-
-  const { data, error } = await supabase
-    .from("roleplay_docs")
-    .insert({
-      title: "Doc " + newNumber,
-      content: "<h1>New Roleplay Doc</h1><p>Write something legendary...</p>"
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Could not create new RP doc:", error);
-    return;
-  }
-
-  docs.push({
-    id: data.id,
-    title: data.title,
-    content: data.content
-  });
-
-  activeDocId = data.id;
-  currentRoleplayDocId = data.id;
-
-  await loadRoleplayDoc(data.id);
-  joinRoleplayChannel(data.id);
-  renderTabs();
-}
-
-function closeThreadPanel() {
-  activeThreadPostId = null;
-  activeThreadCommentId = null;
-  if (threadReplyInput) threadReplyInput.value = "";
-  if (threadOverlay) threadOverlay.classList.add("hidden");
-}
-
-
-
-function openThreadPanel(postId, commentId) {
-  const post = posts.find((p) => String(p.id) === String(postId));
-  if (!post || !threadOverlay || !threadComments) return;
-
-  const comment = post.comments.find((c) => String(c.id) === String(commentId));
-  if (!comment) return;
-
-  activeThreadPostId = post.id;
-  activeThreadCommentId = comment.id;
-
-  if (threadTitle) {
-    threadTitle.textContent = `${comment.user}'s Thread`;
-  }
-
-  if (threadSubtitle) {
-    const replyCount = Array.isArray(comment.replies) ? comment.replies.length : 0;
-    threadSubtitle.textContent = `${replyCount} repl${replyCount === 1 ? "y" : "ies"}`;
-  }
-
-  if (threadPostMiniAvatar) {
-    threadPostMiniAvatar.textContent = bios[comment.user]?.letter || comment.user?.[1] || "?";
-  }
-
-  renderSingleCommentThread(post, comment);
-  threadOverlay.classList.remove("hidden");
-}
-
-
-function renderSingleCommentThread(post, parentComment) {
-  if (!threadComments) return;
-
-  threadComments.innerHTML = "";
-
-  const mainRow = document.createElement("div");
-  mainRow.className = "thread-comment";
-
-  const mainAvatar = document.createElement("div");
-  mainAvatar.className = "thread-comment-avatar";
-  mainAvatar.textContent = bios[parentComment.user]?.letter || parentComment.user?.[1] || "?";
-
-  const mainBody = document.createElement("div");
-  mainBody.className = "thread-comment-body";
-
-  const mainUser = document.createElement("div");
-  mainUser.className = "thread-comment-user";
-  mainUser.textContent = parentComment.user;
-
-  const mainBubble = document.createElement("div");
-  mainBubble.className = "thread-comment-bubble";
-  mainBubble.innerHTML = highlightMentions(parentComment.text || "");
-
-  const mainTime = document.createElement("div");
-  mainTime.className = "thread-comment-time";
-  mainTime.textContent = parentComment.created_at ? formatTime(parentComment.created_at) : "";
-
-  mainBody.appendChild(mainUser);
-  mainBody.appendChild(mainBubble);
-  mainBody.appendChild(mainTime);
-
-  mainRow.appendChild(mainAvatar);
-  mainRow.appendChild(mainBody);
-  threadComments.appendChild(mainRow);
-
-  const replies = Array.isArray(parentComment.replies) ? parentComment.replies : [];
-
-  replies.forEach((reply) => {
-    const row = document.createElement("div");
-    row.className = "thread-comment" + (reply.user === currentUser ? " mine" : "");
-
-    const avatar = document.createElement("div");
-    avatar.className = "thread-comment-avatar";
-    avatar.textContent = bios[reply.user]?.letter || reply.user?.[1] || "?";
-
-    const body = document.createElement("div");
-    body.className = "thread-comment-body";
-
-    const user = document.createElement("div");
-    user.className = "thread-comment-user";
-    user.textContent = reply.user;
-
-    const bubble = document.createElement("div");
-    bubble.className = "thread-comment-bubble";
-    bubble.innerHTML = highlightMentions(reply.text || "");
-
-    const time = document.createElement("div");
-    time.className = "thread-comment-time";
-    time.textContent = reply.created_at ? formatTime(reply.created_at) : "";
-
-    body.appendChild(user);
-    body.appendChild(bubble);
-    body.appendChild(time);
-
-    if (reply.user === currentUser) {
-      const editReplyBtn = document.createElement("button");
-      editReplyBtn.type = "button";
-      editReplyBtn.className = "action-btn edit-btn";
-      editReplyBtn.textContent = "✏️ Edit";
-
-      editReplyBtn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        editThreadReply(post.id, parentComment.id, reply.id);
-      });
-
-      body.appendChild(editReplyBtn);
-    }
-
-    row.appendChild(avatar);
-    row.appendChild(body);
-    threadComments.appendChild(row);
-  });
-
-  threadComments.scrollTop = threadComments.scrollHeight;
-}
-  
-async function submitThreadReply() {
-  if (!activeThreadPostId || !activeThreadCommentId || !currentUser || !threadReplyInput) return;
-
-  const text = threadReplyInput.value.trim();
-  if (!text) return;
-
-  const post = posts.find((p) => String(p.id) === String(activeThreadPostId));
-  if (!post) return;
-
-  const updatedComments = post.comments.map((comment) => {
-    if (String(comment.id) !== String(activeThreadCommentId)) return comment;
-
-    return {
-      ...comment,
-      replies: [
-        ...(Array.isArray(comment.replies) ? comment.replies : []),
-        {
-          id: crypto.randomUUID(),
-          user: currentUser,
-          text: text,
-          created_at: Date.now()
-        }
-      ]
-    };
-  });
-
-  const ok = await updatePostInSupabase(post.id, {
-    comments: updatedComments
-  });
-
-  if (!ok) return;
-
-  const parentComment = post.comments.find(
-    (comment) => String(comment.id) === String(activeThreadCommentId)
-  );
-
-  if (parentComment && parentComment.user !== currentUser) {
-    await addNotification(
-      parentComment.user,
-      `${currentUser} replied to your thread`,
-      post.id,
-      "thread_reply"
-    );
-  }
-
-  threadReplyInput.value = "";
-  await loadPostsFromSupabase();
-
-  const updatedPost = posts.find((p) => String(p.id) === String(activeThreadPostId));
-  if (!updatedPost) return;
-
-  const updatedParentComment = updatedPost.comments.find(
-    (comment) => String(comment.id) === String(activeThreadCommentId)
-  );
-
-  if (updatedParentComment) {
-    renderSingleCommentThread(updatedPost, updatedParentComment);
-  }
-}
-if (threadReplyBtn) {
-  threadReplyBtn.addEventListener("click", submitThreadReply);
-}
-
-if (threadReplyInput) {
-  threadReplyInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      submitThreadReply();
-    }
-  });
-}
-
-if (closeThreadBtn) {
-  closeThreadBtn.addEventListener("click", closeThreadPanel);
-}
-
-function openEditPostModal(post) {
-  editingPostId = post.id;
-
-  if (postText) postText.value = post.text || "";
-  if (postDescription) postDescription.value = post.description || "";
-
-  selectedImageData = post.image || "";
-  if (fileName) {
-    fileName.textContent = post.image ? "Current image selected" : "No file chosen";
-  }
-
-  if (postBtn) {
-    postBtn.textContent = "Save Edit";
-  }
-  closePostView();
-closeThreadPanel();
-
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-function editTopLevelComment(postId, commentId) {
-  const post = posts.find((p) => String(p.id) === String(postId));
-  if (!post) return;
-
-  const comment = post.comments.find((c) => String(c.id) === String(commentId));
-  if (!comment) return;
-
-  openEditCommentModal(comment.text || "", postId, commentId);
-}
-function editThreadReply(postId, parentCommentId, replyId) {
-  const post = posts.find((p) => String(p.id) === String(postId));
-  if (!post) return;
-
-  const parentComment = post.comments.find(
-    (c) => String(c.id) === String(parentCommentId)
-  );
-  if (!parentComment) return;
-
-  const reply = (parentComment.replies || []).find(
-    (r) => String(r.id) === String(replyId)
-  );
-  if (!reply) return;
-
-  openEditCommentModal(reply.text || "", postId, parentCommentId, replyId);
-}
-function openEditCommentModal(text, postId, commentId, replyId = null) {
-  editingCommentPostId = postId;
-  editingCommentId = commentId;
-  editingReplyId = replyId;
-
-  if (editCommentInput) {
-    editCommentInput.value = text || "";
-    editCommentInput.focus();
-  }
-
-  if (editCommentModal) {
-    editCommentModal.classList.remove("hidden");
-  }
-}
-
-function closeEditCommentModal() {
-  editingCommentPostId = null;
-  editingCommentId = null;
-  editingReplyId = null;
-
-  if (editCommentInput) {
-    editCommentInput.value = "";
-  }
-
-  if (editCommentModal) {
-    editCommentModal.classList.add("hidden");
-  }
-}
-async function saveEditedComment() {
-  if (!editingCommentPostId || !editingCommentId || !editCommentInput) return;
-
-  const newText = editCommentInput.value.trim();
-  if (!newText) return;
-
-  const postId = editingCommentPostId;
-  const commentId = editingCommentId;
-  const replyId = editingReplyId;
-
-  const post = posts.find((p) => String(p.id) === String(postId));
-  if (!post) return;
-
-  let updatedComments;
-
-  if (replyId) {
-    updatedComments = post.comments.map((comment) => {
-      if (String(comment.id) !== String(commentId)) return comment;
-
-      return {
-        ...comment,
-        replies: (comment.replies || []).map((reply) => {
-          if (String(reply.id) !== String(replyId)) return reply;
-          return {
-            ...reply,
-            text: newText
-          };
-        })
-      };
-    });
-  } else {
-    updatedComments = post.comments.map((comment) => {
-      if (String(comment.id) !== String(commentId)) return comment;
-      return {
-        ...comment,
-        text: newText
-      };
-    });
-  }
-
-  const ok = await updatePostInSupabase(post.id, {
-    comments: updatedComments
-  });
-
-  if (!ok) return;
-
-  await loadPostsFromSupabase();
-  closeEditCommentModal();
-
-  const updatedPost = posts.find((p) => String(p.id) === String(postId));
-  if (!updatedPost) return;
-
-  if (replyId) {
-    const updatedParentComment = updatedPost.comments.find(
-      (c) => String(c.id) === String(commentId)
-    );
-
-    if (updatedParentComment) {
-      openThreadPanel(updatedPost.id, updatedParentComment.id);
-    }
-  } else {
-    openPostView(updatedPost);
-  }
-}
-if (closeEditCommentBtn) {
-  closeEditCommentBtn.addEventListener("click", closeEditCommentModal);
-}
-
-if (editCommentBackdrop) {
-  editCommentBackdrop.addEventListener("click", closeEditCommentModal);
-}
-if (saveEditCommentBtn) {
-  saveEditCommentBtn.addEventListener("click", saveEditedComment);
-}
-
-if (editCommentInput) {
-  editCommentInput.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      saveEditedComment();
-    }
-  });
-}
 startApp();
-renderTabs();
-openDoc(activeDocId);

@@ -17,6 +17,14 @@
     </div>
   </div>
 
+  
+        
+
+      
+
+
+  
+
   <header class="hero">
     <div class="hero-overlay">
       <nav class="top-bar">
@@ -24,26 +32,24 @@
           <div class="logo-icon">🐉</div>
           <div class="logo-text">Dragon Community</div>
         </div>
-        
 
         <div class="top-right">
+          <select id="areaSelect" class="area-switcher">
+            <option value="feedArea">Feed</option>
+            <option value="roleplayingArea">Roleplaying</option>
+            <option value="marketArea">Market</option>
+          </select>
 
-  <select id="areaSelect" class="area-switcher">
-    <option value="feedArea">Feed</option>
-    <option value="roleplayingArea">Roleplaying</option>
-  </select>
+          <button id="notifBtn" class="icon-btn" type="button">
+            🔔 <span id="notifCount" class="notif-badge">0</span>
+          </button>
 
-  <button id="notifBtn" class="icon-btn" type="button">
-    🔔 <span id="notifCount" class="notif-badge">0</span>
-  </button>
+          <button id="logoutBtn" class="icon-btn" type="button">🚪 Log Out</button>
 
-  <button id="logoutBtn" class="icon-btn" type="button">🚪 Log Out</button>
-
-  <button id="topAvatar" class="profile-pill profile-button" type="button">
-    <span id="topAvatarLetter">K</span>
-  </button>
-
-</div>
+          <button id="topAvatar" class="profile-pill profile-button" type="button">
+            <span id="topAvatarLetter">K</span>
+          </button>
+        </div>
       </nav>
 
       <div class="group-info">
@@ -81,7 +87,6 @@
             <span id="fileName" class="file-name">No file chosen</span>
           </div>
         </div>
-        
 
         <button id="postBtn" class="post-btn" type="button">Post</button>
       </div>
@@ -102,38 +107,75 @@
 
     <section id="feed" class="feed-grid"></section>
   </main>
-<section id="roleplayingArea" class="area hidden-area">
-  <div class="docs-wrapper">
 
-    <div class="docs-tabs-bar">
-      <div id="docTabs" class="doc-tabs"></div>
-      <button id="newDocTabBtn" class="new-tab-btn" type="button">+ New Tab</button>
+  <section id="roleplayingArea" class="area hidden-area" style="display: none;">
+    <div class="docs-wrapper">
+      <div class="docs-tabs-bar">
+        <div id="docTabs" class="doc-tabs"></div>
+        <button id="newDocTabBtn" class="new-tab-btn" type="button">+ New Tab</button>
+      </div>
+
+      <button type="button" id="boldBtn"><b>B</b></button>
+      <button type="button" id="italicBtn"><i>I</i></button>
+      <button type="button" id="centerBtn">⬌</button>
+
+      <select id="fontSelect">
+        <option value="Arial">Arial</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Verdana">Verdana</option>
+      </select>
+
+      <select id="fontSizeSelect">
+        <option value="1">Small</option>
+        <option value="3">Normal</option>
+        <option value="5">Large</option>
+        <option value="7">Huge</option>
+      </select>
+
+      <input id="textColorPicker" type="color" value="#000000" />
+      <input id="highlightColorPicker" type="color" value="#fff59d" />
+
+      <div id="roleplayEditor" class="docs-page" contenteditable="true"></div>
+      <div id="rpPresenceBar" class="rp-presence-bar">Nobody here yet</div>
     </div>
-<button type="button" id="boldBtn"><b>B</b></button>
-<button type="button" id="italicBtn"><i>I</i></button>
-<button type="button" id="centerBtn">⬌</button>
-    <select id="fontSelect">
-  <option value="Arial">Arial</option>
-  <option value="Georgia">Georgia</option>
-  <option value="Times New Roman">Times New Roman</option>
-  <option value="Courier New">Courier New</option>
-  <option value="Verdana">Verdana</option>
-</select>
+  </section>
 
+  <section id="marketArea" class="area hidden-area" style="display: none;">
+    <div class="docs-wrapper">
+      <div class="docs-tabs-bar">
+        <div id="marketTabs" class="doc-tabs"></div>
+        <button id="newMarketTabBtn" class="new-tab-btn" type="button">+ New Tab</button>
+      </div>
 
-<select id="fontSizeSelect">
-  <option value="1">Small</option>
-  <option value="3">Normal</option>
-  <option value="5">Large</option>
-  <option value="7">Huge</option>
-</select>
+      <div class="docs-toolbar">
+        <button type="button" id="marketBoldBtn"><b>B</b></button>
+        <button type="button" id="marketItalicBtn"><i>I</i></button>
+        <button type="button" id="marketCenterBtn">⬌</button>
 
-<input id="textColorPicker" type="color" value="#000000" />
-<input id="highlightColorPicker" type="color" value="#fff59d" />
+        <select id="marketFontSelect">
+          <option value="Arial">Arial</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Verdana">Verdana</option>
+        </select>
 
-<div id="roleplayEditor" class="docs-page" contenteditable="true"></div>
-<div id="rpPresenceBar" class="rp-presence-bar">Nobody here yet</div>
+        <select id="marketFontSizeSelect">
+          <option value="1">Small</option>
+          <option value="3">Normal</option>
+          <option value="5">Large</option>
+          <option value="7">Huge</option>
+        </select>
 
+        <input id="marketTextColorPicker" type="color" value="#000000" />
+        <input id="marketHighlightColorPicker" type="color" value="#fff59d" />
+
+      </div>
+
+      <div id="marketEditor" class="docs-page" contenteditable="true"></div>
+    
    
   </div>
 </section>
