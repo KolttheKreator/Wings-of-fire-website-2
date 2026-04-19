@@ -1871,15 +1871,7 @@ function renderSingleCommentThread(post, parentComment) {
 
   const replies = Array.isArray(parentComment.replies) ? parentComment.replies : [];
 
-  if (reply.user === currentUser) {
-  const editReplyBtn = document.createElement("button");
-  editReplyBtn.type = "button";
-  editReplyBtn.className = "action-btn";
-  editReplyBtn.textContent = "✏️ Edit";
-
-  editReplyBtn.addEventListener("click", function () {
-    editThreadReply(post.id, parentComment.id, reply.id);
-  });
+  
 
   body.appendChild(editReplyBtn);
 }
