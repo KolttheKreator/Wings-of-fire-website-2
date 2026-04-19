@@ -79,7 +79,7 @@ const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
 let activeThreadCommentId = null;
 let currentUser = null;
 let activeThreadPostId = null;
-
+let editingPostId = null;
 let selectedImageData = "";
 let activePostId = null;
 let posts = [];
@@ -951,7 +951,7 @@ function renderPosts() {
     const commentCount = clone.querySelector(".comment-count");
     const pinBtn = clone.querySelector(".pin-btn");
     const deleteBtn = clone.querySelector(".delete-btn");
-    
+    const editBtn = clone.querySelector(".edit-btn");
     const commentsList = clone.querySelector(".comments-list");
 
 
@@ -1079,6 +1079,18 @@ function renderPosts() {
         deleteBtn.classList.add("hidden");
       }
     }
+    if (editBtn) {
+  if (post.username === currentUser) {
+    editBtn.classList.remove("hidden");
+
+    editBtn.onclick = function (e) {
+      e.stopPropagation();
+      openEditPostModal(post);
+    };
+  } else {
+    editBtn.classList.add("hidden");
+  }
+}
 
     if (tagPill) {
       if (!post.pinned) {
@@ -1219,6 +1231,34 @@ if (postBtn) {
       alert("Write something for your post first.");
       return;
     }
+    if (editingPostId) {
+  const text = postText ? postText.value.trim() : "";
+  const description = postDescription ? postDescription.value.trim() : "";
+
+  if (!text) {
+    alert("Write something for your post first.");
+    return;
+  }
+
+  const ok = await updatePostInSupabase(editingPostId, {
+    text: text,
+    description: description,
+    image: selectedImageData || ""
+  });
+
+  if (!ok) return;
+
+  editingPostId = null;
+  if (postBtn) postBtn.textContent = "Post";
+  if (postText) postText.value = "";
+  if (postDescription) postDescription.value = "";
+  if (fileInput) fileInput.value = "";
+  if (fileName) fileName.textContent = "No file chosen";
+  selectedImageData = "";
+
+  await loadPostsFromSupabase();
+  return;
+}
 
     const img =
       selectedImageData ||
@@ -1931,6 +1971,24 @@ if (threadReplyInput) {
 
 if (closeThreadBtn) {
   closeThreadBtn.addEventListener("click", closeThreadPanel);
+}
+
+function openEditPostModal(post) {
+  editingPostId = post.id;
+
+  if (postText) postText.value = post.text || "";
+  if (postDescription) postDescription.value = post.description || "";
+
+  selectedImageData = post.image || "";
+  if (fileName) {
+    fileName.textContent = post.image ? "Current image selected" : "No file chosen";
+  }
+
+  if (postBtn) {
+    postBtn.textContent = "Save Edit";
+  }
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 startApp();
 renderTabs();
