@@ -524,15 +524,7 @@ async function openNotifications() {
       div.appendChild(time);
 
       div.addEventListener("click", async function (e) {
-  e.stopPropagation();
-
-  if (notif.postId) {
-    await openNotificationTarget(notif.id);
-  } else {
-    await markNotificationAsRead(notif.id);
-    closeNotifications();
-  }
-});
+        e.stopPropagation();
 
         if (notif.postId) {
           await openNotificationTarget(notif.id);
@@ -1073,7 +1065,7 @@ async function submitPostViewComment() {
   if (!ok) return;
 
   if (post.username !== currentUser) {
-    addNotification(`${currentUser} commented on your post`, post.id, "comment");
+    await addNotification(post.username, `${currentUser} commented on your post`, post.id, "comment");
   }
 
   saveLocalData();
