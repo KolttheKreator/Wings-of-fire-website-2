@@ -1231,34 +1231,27 @@ if (postBtn) {
       alert("Write something for your post first.");
       return;
     }
+
     if (editingPostId) {
-  const text = postText ? postText.value.trim() : "";
-  const description = postDescription ? postDescription.value.trim() : "";
+      const ok = await updatePostInSupabase(editingPostId, {
+        text: text,
+        description: description,
+        image: selectedImageData || ""
+      });
 
-  if (!text) {
-    alert("Write something for your post first.");
-    return;
-  }
+      if (!ok) return;
 
-  const ok = await updatePostInSupabase(editingPostId, {
-    text: text,
-    description: description,
-    image: selectedImageData || ""
-  });
+      editingPostId = null;
+      if (postBtn) postBtn.textContent = "Post";
+      if (postText) postText.value = "";
+      if (postDescription) postDescription.value = "";
+      if (fileInput) fileInput.value = "";
+      if (fileName) fileName.textContent = "No file chosen";
+      selectedImageData = "";
 
-  if (!ok) return;
-
-  editingPostId = null;
-  if (postBtn) postBtn.textContent = "Post";
-  if (postText) postText.value = "";
-  if (postDescription) postDescription.value = "";
-  if (fileInput) fileInput.value = "";
-  if (fileName) fileName.textContent = "No file chosen";
-  selectedImageData = "";
-
-  await loadPostsFromSupabase();
-  return;
-}
+      await loadPostsFromSupabase();
+      return;
+    }
 
     const img =
       selectedImageData ||
@@ -1987,6 +1980,8 @@ function openEditPostModal(post) {
   if (postBtn) {
     postBtn.textContent = "Save Edit";
   }
+  closePostView();
+closeThreadPanel();
 
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
