@@ -1108,12 +1108,14 @@ body.modal-open {
   word-break: break-word;
 }
 
-.post-view-description {
+.pos.post-view-description {
+       /* controls scroll area height */
+  overflow-y: auto;
+  overflow-x: hidden;
+
   white-space: pre-wrap;
-  line-height: 1.5;
-  margin: 0;
   word-break: break-word;
-  overflow-wrap: anywhere;
+  padding-right: 6px;
 }
 
 .post-view-header {
