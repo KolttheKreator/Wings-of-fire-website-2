@@ -1637,6 +1637,7 @@ if (fileInput) {
     reader.readAsDataURL(file);
   });
 }
+
 if (threadReplyBtn) {
   threadReplyBtn.addEventListener("click", submitThreadReply);
 }
@@ -1657,6 +1658,7 @@ if (closeThreadBtn) {
 if (threadBackdrop) {
   threadBackdrop.addEventListener("click", closeThreadPanel);
 }
+
 if (profilePicInput) {
   profilePicInput.addEventListener("change", function () {
     const file = profilePicInput.files?.[0];
