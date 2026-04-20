@@ -1871,18 +1871,32 @@ if (areaSelect) {
 // App start
 // =========================
 async function startApp() {
+
   loadLocalData();
+
   updateAreaVisibility();
 
-  
-  if (cachedPosts) {
+  // ⚡ instant load from cache
+
+  const cached = localStorage.getItem("dragon_posts_cache");
+
+  if (cached) {
+
     try {
-      posts = JSON.parse(cachedPosts);
+
+      posts = JSON.parse(cached);
+
       renderPosts();
-    } catch (error) {
-      console.error("Could not load cached posts:", error);
+
+    } catch (e) {
+
+      console.warn("Cache parse failed");
+
     }
+
   }
+
+  // then fetch real data
 
   await loadPostsFromSupabase();
 
