@@ -150,7 +150,7 @@ const profileKeywords = {
   ded: "@Sabrina",
   ghost: "@Sarah",
   revived: "@Deirdre",
-  squid_staff: "@Kraken_Staff",
+  squid_staff: "@Koding_Kraken",
   crow_staff: "@Coding_Crow",
   brother: "@Paul"
 };
@@ -276,12 +276,12 @@ const bios = {
     tag: "How did a crow get on staff?",
     image: ""
   },
-  "@Kraken_Staff": {
+  "@Koding_Kraken": {
     letter: "K",
-    role: "Staff",
-    bio: "Hello! I helped make this website! Ask me anything!",
+    role: "Coder",
+    bio: "What's up! I'm Kraken and I'm one of the coders of this wonderfull ever changing website",
     likes: "Coding",
-    tag: "Squid",
+    tag: "Kraken",
     image: ""
   },
   "@Paul": {
