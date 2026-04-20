@@ -1880,21 +1880,14 @@ async function startApp() {
 
   const cached = localStorage.getItem("dragon_posts_cache");
 
-  if (cached) {
-
-    try {
-
-      posts = JSON.parse(cached);
-
-      renderPosts();
-
-    } catch (e) {
-
-      console.warn("Cache parse failed");
-
-    }
-
+if (cached) {
+  try {
+    posts = JSON.parse(cached);
+    renderPosts();
+  } catch (e) {
+    console.warn("Cache parse failed");
   }
+}
 
   // then fetch real data
 
