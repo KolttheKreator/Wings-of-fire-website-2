@@ -2035,6 +2035,23 @@ if (postViewCommentInput) {
 if (areaSelect) {
   areaSelect.addEventListener("change", updateAreaVisibility);
 }
+async function loadConversations() {
+  if (!currentUser) return;
+
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("*")
+    .or(`user_a.eq.${currentUser},user_b.eq.${currentUser}`)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Could not load conversations:", error.message);
+    return;
+  }
+
+  conversations = data || [];
+  renderConversationList();
+}
 
 // =========================
 // App start
