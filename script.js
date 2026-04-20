@@ -1760,16 +1760,17 @@ if (postBtn) {
       `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
 
     const newPost = {
-      username: currentUser,
-      userLetter: bios[currentUser].letter || "?",
-      text,
-      description,
-      image: img,
-      likes: 0,
-      comments: [],
-      pinned: false,
-      createdAt: Date.now()
-    };
+  username: currentUser,
+  userLetter: bios[currentUser].letter || "?",
+  text,
+  description,
+  image: img,
+  likes: 0,
+  likedBy: [],
+  comments: [],
+  pinned: false,
+  createdAt: Date.now()
+};
 
     const ok = await addPostToSupabase(newPost);
     if (!ok) return;
