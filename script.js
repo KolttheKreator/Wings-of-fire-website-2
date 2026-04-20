@@ -788,6 +788,23 @@ async function addPostToSupabase(newPost) {
     pinned: newPost.pinned,
     created_at: newPost.createdAt
   });
+  try {
+
+  const lightweightPosts = posts.slice(0, 20).map(p => ({
+
+    ...p,
+
+    image: "" // remove big images
+
+  }));
+
+  localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
+
+} catch (e) {
+
+  console.warn("Storage full, skipping cache");
+
+}
 
   if (error) {
     console.error("Could not save post:", error.message);
