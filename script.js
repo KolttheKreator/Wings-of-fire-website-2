@@ -1058,25 +1058,38 @@ async function submitPostViewComment() {
   const text = postViewCommentInput.value.trim();
   if (!text) return;
 
-  const post = posts.find((p) => p.id === activePostId);
+  const post = posts.find((p) => String(p.id) === String(activePostId));
   if (!post) return;
 
-  const updatedComments = [
-    ...post.comments,
-    {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      user: currentUser,
-      text,
-      created_at: Date.now(),
-      replies: []
-    }
-  ];
+  const newComment = {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    user: currentUser,
+    text,
+    created_at: Date.now(),
+    replies: []
+  };
+
+  const oldComments = [...post.comments];
+  post.comments = [...post.comments, newComment];
+
+  postViewCommentInput.value = "";
+  renderPosts();
+  openPostView(post);
 
   const ok = await updatePostInSupabase(post.id, {
-    comments: updatedComments
+    comments: post.comments
   });
 
-  if (!ok) return;
+  if (!ok) {
+    post.comments = oldComments;
+    renderPosts();
+
+    const restoredPost = posts.find((p) => String(p.id) === String(activePostId));
+    if (restoredPost) openPostView(restoredPost);
+
+    alert("Could not save comment.");
+    return;
+  }
 
   if (post.username !== currentUser) {
     await addNotification(
@@ -1087,11 +1100,7 @@ async function submitPostViewComment() {
     );
   }
 
-  saveLocalData();
-  await loadPostsFromSupabase();
-
-  const updatedPost = posts.find((p) => p.id === activePostId);
-  if (updatedPost) openPostView(updatedPost);
+  localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
 }
 
 // =========================
@@ -1710,10 +1719,12 @@ if (postBtn) {
     }
 
     const img =
-      selectedImageData ||
-      `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
+  selectedImageData ||
+  `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
 
-    const newPost = {
+// 🚀 INSTANT POST (put your code here)
+const tempPost = {
+  id: "temp-" + Date.now(),
   username: currentUser,
   userLetter: bios[currentUser].letter || "?",
   text,
@@ -1726,10 +1737,21 @@ if (postBtn) {
   createdAt: Date.now()
 };
 
-    const ok = await addPostToSupabase(newPost);
-    if (!ok) return;
+posts.unshift(tempPost);
+renderPosts();
+localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
 
-    const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
+// 🔄 Save to Supabase in background
+const ok = await addPostToSupabase(tempPost);
+if (!ok) {
+  posts = posts.filter((p) => p.id !== tempPost.id);
+  renderPosts();
+  localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
+  return;
+}
+
+// 🔔 mentions (keep this)
+const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
 for (const mention of mentions) {
   if (bios[mention] && mention !== currentUser) {
     await addNotification(
@@ -1741,18 +1763,16 @@ for (const mention of mentions) {
   }
 }
 
-    saveLocalData();
+// 🧹 clear inputs
+if (postText) postText.value = "";
+if (postDescription) postDescription.value = "";
+if (fileInput) fileInput.value = "";
+if (fileName) fileName.textContent = "No file chosen";
+selectedImageData = "";
+if (mentionList) mentionList.classList.add("hidden");
 
-    if (postText) postText.value = "";
-    if (postDescription) postDescription.value = "";
-    if (fileInput) fileInput.value = "";
-    if (fileName) fileName.textContent = "No file chosen";
-    selectedImageData = "";
-    if (mentionList) mentionList.classList.add("hidden");
-
-    await loadPostsFromSupabase();
-  };
-}
+// 🔄 sync with real DB version
+await loadPostsFromSupabase();
 
 if (saveProfileBtn) {
   saveProfileBtn.onclick = function () {
