@@ -1108,14 +1108,18 @@ body.modal-open {
   word-break: break-word;
 }
 
-.pos.post-view-description {
-       /* controls scroll area height */
-  overflow-y: auto;
-  overflow-x: hidden;
+.post-view-description {
 
   white-space: pre-wrap;
+
+  line-height: 1.6;
+
+  margin: 0;
+
   word-break: break-word;
-  padding-right: 6px;
+
+  overflow-wrap: anywhere;
+
 }
 
 .post-view-header {
@@ -1124,30 +1128,53 @@ body.modal-open {
   gap: 12px;
 }
 .post-view-card {
+
   width: min(1200px, calc(100vw - 32px));
-  max-height: 90vh;
+
+  height: 90vh;
+
   overflow: hidden;
+
   padding: 0;
+
 }
 
 .post-view-layout {
+
   display: grid;
+
   grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 0.9fr);
+
   gap: 0;
-  min-height: 75vh;
+
+  height: 100%;
+
+  min-height: 0;
+
 }
 
 .post-main-column {
+
   padding: 18px;
+
   border-right: 1px solid #e5e7eb;
+
   overflow-y: auto;
+
+  min-height: 0;
+
 }
 
 .post-comments-column {
+
   padding: 18px;
+
   overflow-y: auto;
+
   background: #f8fafc;
-  max-height: 75vh;
+
+  min-height: 0;
+
 }
 
 .post-comments-header {
