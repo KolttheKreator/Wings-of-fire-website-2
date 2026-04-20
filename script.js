@@ -122,6 +122,7 @@ const marketCenterBtn = document.getElementById("marketCenterBtn");
 let currentUser = null;
 let notifications = [];
 let selectedImageData = "";
+let selectedMediaFile = null;
 let activePostId = null;
 let posts = [];
 let editingPostId = null;
@@ -483,6 +484,60 @@ async function uploadProfileImage(file) {
     .getPublicUrl(filePath);
 
   return data.publicUrl;
+}
+
+async function uploadPostVideo(file) {
+  if (!currentUser || !file) return null;
+
+  const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
+  const fileExt = file.name.split(".").pop() || "mp4";
+  const safeName = file.name
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .slice(0, 40) || "video";
+  const filePath = `${safeUser}/posts/${Date.now()}-${safeName}.${fileExt}`;
+
+  const { error: uploadError } = await supabase
+    .storage
+    .from("avatars")
+    .upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "video/mp4"
+    });
+
+  if (uploadError) {
+    console.error("Could not upload post video:", uploadError.message);
+    alert("Could not upload video. Try a smaller MP4, or check the storage bucket settings.");
+    return null;
+  }
+
+  const { data } = supabase
+    .storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event) => resolve(event.target?.result || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function getSelectedPostMedia() {
+  if (!selectedMediaFile) return selectedImageData;
+
+  if (selectedMediaFile.type.startsWith("video/")) {
+    return await uploadPostVideo(selectedMediaFile);
+  }
+
+  if (selectedImageData) return selectedImageData;
+  return await readFileAsDataUrl(selectedMediaFile);
 }
 async function loadNotificationsFromSupabase() {
   if (!currentUser) {
@@ -1598,6 +1653,7 @@ function openEditPostModal(post) {
   if (postDescription) postDescription.value = post.description || "";
 
   selectedImageData = post.image || "";
+  selectedMediaFile = null;
   if (fileName) {
     fileName.textContent = post.image
       ? `Current ${isVideoSource(post.image) ? "video" : "image"} selected`
@@ -1814,12 +1870,14 @@ if (fileInput) {
 
     if (!file) {
       selectedImageData = "";
+      selectedMediaFile = null;
       if (fileName) fileName.textContent = "No file chosen";
       return;
     }
 
     if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
       fileInput.value = "";
+      selectedMediaFile = null;
       if (fileName) {
         fileName.textContent = previousMedia
           ? `Current ${isVideoSource(previousMedia) ? "video" : "image"} selected`
@@ -1829,7 +1887,13 @@ if (fileInput) {
       return;
     }
 
+    selectedMediaFile = file;
     if (fileName) fileName.textContent = file.name;
+
+    if (file.type.startsWith("video/")) {
+      selectedImageData = "";
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = function (event) {
@@ -1974,70 +2038,90 @@ if (postBtn) {
       return;
     }
 
-    if (editingPostId) {
-      const ok = await updatePostInSupabase(editingPostId, {
+    postBtn.disabled = true;
+    postBtn.textContent = selectedMediaFile?.type.startsWith("video/")
+      ? "Uploading..."
+      : editingPostId
+        ? "Saving..."
+        : "Posting...";
+
+    try {
+      const selectedMedia = await getSelectedPostMedia();
+      if (selectedMediaFile && !selectedMedia) return;
+
+      if (editingPostId) {
+        const ok = await updatePostInSupabase(editingPostId, {
+          text,
+          description,
+          image: selectedMedia || ""
+        });
+
+        if (!ok) return;
+
+        editingPostId = null;
+        if (postBtn) postBtn.textContent = "Post";
+        if (postText) postText.value = "";
+        if (postDescription) postDescription.value = "";
+        if (fileInput) fileInput.value = "";
+        if (fileName) fileName.textContent = "No file chosen";
+        selectedImageData = "";
+        selectedMediaFile = null;
+
+        await loadPostsFromSupabase();
+        return;
+      }
+
+      const img =
+        selectedMedia ||
+        `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
+
+      const newPost = {
+        username: currentUser,
+        userLetter: bios[currentUser].letter || "?",
+        profileImage: bios[currentUser].image || "",
         text,
         description,
-        image: selectedImageData || ""
-      });
+        image: img,
+        likes: 0,
+        likedBy: [],
+        comments: [],
+        pinned: false,
+        createdAt: Date.now()
+      };
 
+      const ok = await addPostToSupabase(newPost);
       if (!ok) return;
 
-      editingPostId = null;
-      if (postBtn) postBtn.textContent = "Post";
+      const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
+      for (const mention of mentions) {
+        if (bios[mention] && mention !== currentUser) {
+          await addNotification(
+            mention,
+            `${currentUser} mentioned you in a post`,
+            null,
+            "mention"
+          );
+        }
+      }
+
+      saveLocalData();
+
       if (postText) postText.value = "";
       if (postDescription) postDescription.value = "";
       if (fileInput) fileInput.value = "";
       if (fileName) fileName.textContent = "No file chosen";
       selectedImageData = "";
+      selectedMediaFile = null;
+      if (mentionList) mentionList.classList.add("hidden");
 
       await loadPostsFromSupabase();
-      return;
+    } catch (error) {
+      console.error("Could not post media:", error);
+      alert("Could not upload that file.");
+    } finally {
+      postBtn.disabled = false;
+      postBtn.textContent = editingPostId ? "Save Edit" : "Post";
     }
-
-    const img =
-      selectedImageData ||
-      `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
-
-    const newPost = {
-  username: currentUser,
-  userLetter: bios[currentUser].letter || "?",
-  profileImage: bios[currentUser].image || "",
-  text,
-  description,
-  image: img,
-  likes: 0,
-  likedBy: [],
-  comments: [],
-  pinned: false,
-  createdAt: Date.now()
-};
-
-    const ok = await addPostToSupabase(newPost);
-    if (!ok) return;
-
-    const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
-    for (const mention of mentions) {
-      if (bios[mention] && mention !== currentUser) {
-        await addNotification(
-          mention,
-          `${currentUser} mentioned you in a post`,
-          null,
-          "mention"
-        );
-      }
-    }
-
-    saveLocalData();
-
-    if (postText) postText.value = "";
-    if (postDescription) postDescription.value = "";
-    if (fileInput) fileInput.value = "";
-    if (fileName) fileName.textContent = "No file chosen";
-    selectedImageData = "";
-    if (mentionList) mentionList.classList.add("hidden");
-
-    await loadPostsFromSupabase();
   };
 }
 
