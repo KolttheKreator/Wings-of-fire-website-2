@@ -32,7 +32,7 @@ const notifBtn = document.getElementById("notifBtn");
 const notifModal = document.getElementById("notifModal");
 const closeNotifBtn = document.getElementById("closeNotifBtn");
 const notifList = document.getElementById("notifList");
-
+const messageUserBtn = document.getElementById("messageUserBtn");
 const topAvatar = document.getElementById("topAvatar");
 const postAvatar = document.getElementById("postAvatar");
 
@@ -45,7 +45,14 @@ const bioRole = document.getElementById("bioRole");
 const bioText = document.getElementById("bioText");
 const bioLikes = document.getElementById("bioLikes");
 const bioTag = document.getElementById("bioTag");
-
+const messagesModal = document.getElementById("messagesModal");
+const messagesBackdrop = document.getElementById("messagesBackdrop");
+const closeMessagesBtn = document.getElementById("closeMessagesBtn");
+const conversationList = document.getElementById("conversationList");
+const activeChatName = document.getElementById("activeChatName");
+const messagesList = document.getElementById("messagesList");
+const messageInput = document.getElementById("messageInput");
+const sendMessageBtn = document.getElementById("sendMessageBtn");
 const profileEditorModal = document.getElementById("profileEditorModal");
 const profileEditorBackdrop = document.getElementById("profileEditorBackdrop");
 const closeProfileEditorBtn = document.getElementById("closeProfileEditorBtn");
@@ -76,7 +83,7 @@ const postViewDescription = document.getElementById("postViewDescription");
 const postViewComments = document.getElementById("postViewComments");
 const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
-
+const openMessagesBtn = document.getElementById("openMessagesBtn");
 // Area switching
 const areaSelect = document.getElementById("areaSelect");
 const feedArea = document.getElementById("feedArea");
@@ -119,6 +126,10 @@ let editingPostId = null;
 let activeThreadPostId = null;
 let activeThreadCommentId = null;
 let postsChannel = null;
+let conversations = [];
+let activeConversationId = null;
+let activeConversationUser = null;
+let messagesChannel = null;
 // =========================
 // Data
 // =========================
@@ -332,6 +343,23 @@ function loadLocalData() {
 // =========================
 // Helpers
 // =========================
+
+function openMessagesModal() {
+  if (messagesModal) messagesModal.classList.remove("hidden");
+}
+
+function closeMessagesModal() {
+  if (messagesModal) messagesModal.classList.add("hidden");
+  activeConversationId = null;
+  activeConversationUser = null;
+  if (messageInput) messageInput.value = "";
+
+  if (messagesChannel) {
+    supabase.removeChannel(messagesChannel);
+    messagesChannel = null;
+  }
+}
+
 function formatTime(createdAt) {
   const timeValue =
     typeof createdAt === "string" ? new Date(createdAt).getTime() : Number(createdAt);
@@ -673,7 +701,21 @@ function refreshMainProfileUI() {
 function openBio(usernameText) {
   const bio = bios[usernameText];
   if (!bio) return;
+if (messageUserBtn) {
+  if (!currentUser || usernameText === currentUser) {
+    messageUserBtn.classList.add("hidden");
+  } else {
+    messageUserBtn.classList.remove("hidden");
+    messageUserBtn.onclick = async function () {
+      const conversation = await getOrCreateConversation(usernameText);
+      if (!conversation) return;
 
+      closeBio();
+      await loadConversations();
+      await openConversation(conversation.id, usernameText);
+    };
+  }
+}
   if (bioAvatar) {
     if (bio.image) {
       bioAvatar.innerHTML = `<img src="${bio.image}" alt="Profile picture">`;
@@ -1732,6 +1774,33 @@ if (closeThreadBtn) {
 if (threadBackdrop) {
   threadBackdrop.addEventListener("click", closeThreadPanel);
 }
+if (openMessagesBtn) {
+  openMessagesBtn.addEventListener("click", async function () {
+    if (!currentUser) return;
+    await loadConversations();
+    openMessagesModal();
+  });
+}
+if (closeMessagesBtn) {
+  closeMessagesBtn.addEventListener("click", closeMessagesModal);
+}
+
+if (messagesBackdrop) {
+  messagesBackdrop.addEventListener("click", closeMessagesModal);
+}
+
+if (sendMessageBtn) {
+  sendMessageBtn.addEventListener("click", sendMessage);
+}
+
+if (messageInput) {
+  messageInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+}
 
 if (profilePicInput) {
   profilePicInput.addEventListener("change", async function () {
@@ -1985,6 +2054,7 @@ if (cached) {
   if (currentUser && bios[currentUser]) {
     hideLoginScreen();
     refreshMainProfileUI();
+    await loadConversations();
     await loadNotificationsFromSupabase();
   } else {
     currentUser = null;
@@ -2068,6 +2138,195 @@ function subscribeToPostChanges() {
     .subscribe((status) => {
       console.log("Supabase post live status:", status);
     });
+}
+
+async function getOrCreateConversation(otherUser) {
+  if (!currentUser || !otherUser || currentUser === otherUser) return null;
+
+  const [userA, userB] = [currentUser, otherUser].sort();
+
+  const { data: existing, error: findError } = await supabase
+    .from("conversations")
+    .select("*")
+    .eq("user_a", userA)
+    .eq("user_b", userB)
+    .maybeSingle();
+
+  if (findError) {
+    console.error("Could not find conversation:", findError.message);
+    return null;
+  }
+
+  if (existing) return existing;
+
+  const { data: created, error: createError } = await supabase
+    .from("conversations")
+    .insert({
+      user_a: userA,
+      user_b: userB,
+      created_at: Date.now()
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    console.error("Could not create conversation:", createError.message);
+    return null;
+  }
+
+  return created;
+}
+async function loadConversations() {
+  if (!currentUser) return;
+
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("*")
+    .or(`user_a.eq.${currentUser},user_b.eq.${currentUser}`)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Could not load conversations:", error.message);
+    return;
+  }
+
+  conversations = data || [];
+  renderConversationList();
+}
+
+function renderConversationList() {
+  if (!conversationList) return;
+
+  conversationList.innerHTML = "";
+
+  if (conversations.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "comment";
+    empty.textContent = "No messages yet.";
+    conversationList.appendChild(empty);
+    return;
+  }
+
+  conversations.forEach((conversation) => {
+    const otherUser =
+      conversation.user_a === currentUser
+        ? conversation.user_b
+        : conversation.user_a;
+
+    const div = document.createElement("div");
+    div.className =
+      "conversation-item" +
+      (String(conversation.id) === String(activeConversationId) ? " active" : "");
+    div.textContent = otherUser;
+
+    div.onclick = async function () {
+      await openConversation(conversation.id, otherUser);
+    };
+
+    conversationList.appendChild(div);
+  });
+}
+
+async function loadMessages(conversationId) {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Could not load messages:", error.message);
+    return [];
+  }
+
+  return data || [];
+}
+function renderMessages(messages) {
+  if (!messagesList) return;
+
+  messagesList.innerHTML = "";
+
+  if (messages.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "comment";
+    empty.textContent = "No messages yet. Start the chat!";
+    messagesList.appendChild(empty);
+    return;
+  }
+
+  messages.forEach((msg) => {
+    const div = document.createElement("div");
+    div.className =
+      "message-bubble " + (msg.sender === currentUser ? "mine" : "theirs");
+    div.textContent = msg.text;
+    messagesList.appendChild(div);
+  });
+
+  messagesList.scrollTop = messagesList.scrollHeight;
+}
+async function openConversation(conversationId, otherUser) {
+  activeConversationId = conversationId;
+  activeConversationUser = otherUser;
+
+  if (activeChatName) activeChatName.textContent = otherUser;
+
+  renderConversationList();
+  openMessagesModal();
+
+  const messages = await loadMessages(conversationId);
+  renderMessages(messages);
+
+  subscribeToMessages(conversationId);
+}
+
+function subscribeToMessages(conversationId) {
+  if (messagesChannel) {
+    supabase.removeChannel(messagesChannel);
+    messagesChannel = null;
+  }
+
+  messagesChannel = supabase
+    .channel("messages-live-" + conversationId)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${conversationId}`
+      },
+      async () => {
+        const messages = await loadMessages(conversationId);
+        renderMessages(messages);
+      }
+    )
+    .subscribe((status) => {
+      console.log("Messages live status:", status);
+    });
+}
+async function sendMessage() {
+  if (!activeConversationId || !currentUser || !messageInput) return;
+
+  const text = messageInput.value.trim();
+  if (!text) return;
+
+  const { error } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: activeConversationId,
+      sender: currentUser,
+      text,
+      created_at: Date.now(),
+      read: false
+    });
+
+  if (error) {
+    console.error("Could not send message:", error.message);
+    alert("Could not send message.");
+    return;
+  }
+
+  messageInput.value = "";
 }
 
 startApp(); 

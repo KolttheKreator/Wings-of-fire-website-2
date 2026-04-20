@@ -45,6 +45,8 @@
           </button>
 
           <button id="logoutBtn" class="icon-btn" type="button">🚪 Log Out</button>
+          <button id="openMessagesBtn" class="icon-btn">💬</button>
+          <button id="messageUserBtn" class="post-btn">Message</button>
 
           <button id="topAvatar" class="profile-pill profile-button" type="button">
             <span id="topAvatarLetter">K</span>
@@ -271,6 +273,37 @@
       </div>
     </div>
   </div>
+  <!-- Messages Modal -->
+<div id="messagesModal" class="bio-modal hidden">
+  <div id="messagesBackdrop" class="bio-backdrop"></div>
+
+  <div class="messages-card">
+    <div class="messages-sidebar">
+      <div class="messages-sidebar-header">
+        <h3>Messages</h3>
+      </div>
+      <div id="conversationList" class="conversation-list"></div>
+    </div>
+
+    <div class="messages-main">
+      <div class="messages-header">
+        <div id="activeChatName">Select a chat</div>
+        <button id="closeMessagesBtn" class="close-bio-btn">✕</button>
+      </div>
+
+      <div id="messagesList" class="messages-list"></div>
+
+      <div class="messages-input-row">
+        <input
+          id="messageInput"
+          type="text"
+          placeholder="Type a message..."
+        />
+        <button id="sendMessageBtn" class="post-btn">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <div id="postViewModal" class="bio-modal hidden">
   <div class="bio-backdrop" id="postViewBackdrop"></div>
