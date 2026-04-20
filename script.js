@@ -31,6 +31,7 @@ const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
 const notifBtn = document.getElementById("notifBtn");
 const notifModal = document.getElementById("notifModal");
 const closeNotifBtn = document.getElementById("closeNotifBtn");
+const clearNotificationsBtn = document.getElementById("clearNotificationsBtn");
 const notifList = document.getElementById("notifList");
 const messageUserBtn = document.getElementById("messageUserBtn");
 const topAvatar = document.getElementById("topAvatar");
@@ -425,6 +426,10 @@ function updateNotificationCount() {
   if (!notifCount) return;
   const unreadCount = notifications.filter((notif) => !notif.read).length;
   notifCount.textContent = String(unreadCount);
+
+  if (clearNotificationsBtn) {
+    clearNotificationsBtn.disabled = notifications.length === 0;
+  }
 }
 
 async function addNotification(targetUser, text, postId = null, type = "general") {
@@ -522,6 +527,26 @@ async function markNotificationAsRead(notificationId) {
   }
 
   updateNotificationCount();
+}
+
+async function clearAllNotifications() {
+  if (!currentUser) return;
+
+  const { error } = await supabase
+    .from("notifications")
+    .delete()
+    .eq("target_user", currentUser);
+
+  if (error) {
+    console.error("Could not clear notifications:", error.message);
+    alert("Could not clear notifications.");
+    return;
+  }
+
+  notifications = [];
+  saveLocalData();
+  updateNotificationCount();
+  openNotifications();
 }
 
 async function openNotificationTarget(notificationId) {
@@ -2014,6 +2039,12 @@ if (notifBtn) {
 }
 
 if (closeNotifBtn) closeNotifBtn.addEventListener("click", closeNotifications);
+if (clearNotificationsBtn) {
+  clearNotificationsBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    clearAllNotifications();
+  });
+}
 if (closeBioBtn) closeBioBtn.onclick = closeBio;
 if (bioBackdrop) bioBackdrop.onclick = closeBio;
 if (closeProfileEditorBtn) closeProfileEditorBtn.onclick = closeProfileEditor;
