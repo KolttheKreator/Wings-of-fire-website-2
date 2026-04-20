@@ -76,6 +76,7 @@ const postViewModal = document.getElementById("postViewModal");
 const postViewBackdrop = document.getElementById("postViewBackdrop");
 const closePostViewBtn = document.getElementById("closePostViewBtn");
 const postViewImage = document.getElementById("postViewImage");
+const postViewVideo = document.getElementById("postViewVideo");
 const postViewAvatar = document.getElementById("postViewAvatar");
 const postViewUsername = document.getElementById("postViewUsername");
 const postViewTime = document.getElementById("postViewTime");
@@ -386,6 +387,11 @@ function formatTime(createdAt) {
 
 function highlightMentions(text) {
   return String(text || "").replace(/(@[a-zA-Z0-9_]+)/g, '<span class="mention">$1</span>');
+}
+
+function isVideoSource(src) {
+  const value = String(src || "").split("?")[0].toLowerCase();
+  return value.startsWith("data:video/") || /\.(mp4|webm|ogg|mov|m4v)$/.test(value);
 }
 
 function getSortedPosts() {
@@ -1004,12 +1010,22 @@ async function deletePostFromSupabase(postId) {
 function openPostView(post) {
   activePostId = post.id;
 
-  if (postViewImage) {
-    if (post.image) {
+  if (postViewImage && postViewVideo) {
+    postViewImage.style.display = "none";
+    postViewVideo.style.display = "none";
+    postViewVideo.pause();
+    postViewVideo.removeAttribute("src");
+    postViewVideo.load();
+    postViewImage.removeAttribute("src");
+
+    if (post.image && isVideoSource(post.image)) {
+      postViewVideo.src = post.image;
+      postViewVideo.style.display = "block";
+      postViewVideo.classList.remove("hidden");
+    } else if (post.image) {
       postViewImage.src = post.image;
       postViewImage.style.display = "block";
-    } else {
-      postViewImage.style.display = "none";
+      postViewImage.classList.remove("hidden");
     }
   }
 
@@ -1219,6 +1235,7 @@ async function submitThreadReply() {
 }
 function closePostView() {
   activePostId = null;
+  if (postViewVideo) postViewVideo.pause();
   if (postViewModal) postViewModal.classList.add("hidden");
   document.body.classList.remove("modal-open");
 }
@@ -1288,6 +1305,7 @@ function renderPosts() {
 
     const card = clone.querySelector(".card");
     const cardImage = clone.querySelector(".card-image");
+    const cardVideo = clone.querySelector(".card-video");
     const username = clone.querySelector(".username");
     const tinyAvatar = clone.querySelector(".tiny-avatar");
     const timeStamp = clone.querySelector(".time-stamp");
@@ -1316,6 +1334,7 @@ function renderPosts() {
           e.target.closest(".edit-btn") ||
           e.target.closest(".comment-submit-btn") ||
           e.target.closest(".comment-input") ||
+          e.target.closest(".card-video") ||
           e.target.closest(".username")
         ) {
           return;
@@ -1325,12 +1344,20 @@ function renderPosts() {
       });
     }
 
-    if (cardImage) {
-      if (post.image) {
+    if (cardImage && cardVideo) {
+      cardImage.style.display = "none";
+      cardVideo.style.display = "none";
+      cardVideo.removeAttribute("src");
+      cardImage.removeAttribute("src");
+
+      if (post.image && isVideoSource(post.image)) {
+        cardVideo.src = post.image;
+        cardVideo.style.display = "block";
+        cardVideo.classList.remove("hidden");
+      } else if (post.image) {
         cardImage.src = post.image;
         cardImage.style.display = "block";
-      } else {
-        cardImage.style.display = "none";
+        cardImage.classList.remove("hidden");
       }
     }
 
@@ -1572,7 +1599,9 @@ function openEditPostModal(post) {
 
   selectedImageData = post.image || "";
   if (fileName) {
-    fileName.textContent = post.image ? "Current image selected" : "No file chosen";
+    fileName.textContent = post.image
+      ? `Current ${isVideoSource(post.image) ? "video" : "image"} selected`
+      : "No file chosen";
   }
 
   if (postBtn) postBtn.textContent = "Save Edit";
@@ -1781,10 +1810,22 @@ makeEditorSystem({
 if (fileInput) {
   fileInput.addEventListener("change", function () {
     const file = fileInput.files?.[0];
+    const previousMedia = selectedImageData;
 
     if (!file) {
       selectedImageData = "";
       if (fileName) fileName.textContent = "No file chosen";
+      return;
+    }
+
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      fileInput.value = "";
+      if (fileName) {
+        fileName.textContent = previousMedia
+          ? `Current ${isVideoSource(previousMedia) ? "video" : "image"} selected`
+          : "No file chosen";
+      }
+      alert("Please choose an image or video file.");
       return;
     }
 

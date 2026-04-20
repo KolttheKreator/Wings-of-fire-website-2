@@ -364,7 +364,8 @@ body {
   box-shadow: var(--shadow-hover);
 }
 
-.card-image {
+.card-image,
+.card-video {
   width: 100%;
   height: 220px;
   object-fit: cover;

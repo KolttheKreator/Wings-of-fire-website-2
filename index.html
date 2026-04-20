@@ -84,8 +84,8 @@
           ></textarea>
 
           <div class="file-row">
-            <label for="fileInput" class="file-btn">Add File</label>
-            <input id="fileInput" type="file" accept="image/*" hidden />
+            <label for="fileInput" class="file-btn">Add Photo or Video</label>
+            <input id="fileInput" type="file" accept="image/*,video/*" hidden />
             <span id="fileName" class="file-name">No file chosen</span>
           </div>
         </div>
@@ -184,6 +184,7 @@
   <template id="postTemplate">
     <article class="card">
       <img class="card-image" src="" alt="post image" />
+      <video class="card-video hidden" controls playsinline></video>
 
       <div class="card-body">
         <div class="card-top">
@@ -324,6 +325,7 @@
     <div class="post-view-content post-view-layout">
       <div class="post-main-column">
         <img id="postViewImage" class="post-view-image" src="" alt="Post image" />
+        <video id="postViewVideo" class="post-view-image hidden" controls playsinline></video>
 
         <div class="post-view-header">
           <div id="postViewAvatar" class="bio-avatar">K</div>
