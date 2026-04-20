@@ -773,17 +773,18 @@ async function loadPostsFromSupabase() {
 
   try {
     const lightweightPosts = posts.slice(0, 20).map((p) => ({
-      id: p.id,
-      username: p.username,
-      userLetter: p.userLetter,
-      text: p.text,
-      description: p.description,
-      likes: p.likes,
-      likedBy: p.likedBy,
-      pinned: p.pinned,
-      createdAt: p.createdAt,
-      comments: []
-    }));
+  id: p.id,
+  username: p.username,
+  userLetter: p.userLetter,
+  text: p.text,
+  description: p.description,
+  image: typeof p.image === "string" && p.image.startsWith("http") ? p.image : "",
+  likes: p.likes,
+  likedBy: p.likedBy,
+  pinned: p.pinned,
+  createdAt: p.createdAt,
+  comments: []
+}));
 
     localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
   } catch (e) {
