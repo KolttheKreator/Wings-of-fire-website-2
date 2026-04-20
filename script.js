@@ -757,22 +757,40 @@ async function loadPostsFromSupabase() {
     return;
   }
 
-  posts = (data || []).map((post) => ({
-  id: post.id,
-  username: post.username,
-  userLetter: post.user_letter || "",
-  text: post.text,
-  description: post.description || "",
-  image: post.image || "",
-  likes: post.likes || 0,
-  likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
-  comments: Array.isArray(post.comments) ? post.comments : [],
-  pinned: !!post.pinned,
-  createdAt: Number(post.created_at) || Date.now()
-}));
+  try {
+
+  const lightweightPosts = posts.slice(0, 20).map(p => ({
+
+    id: p.id,
+
+    username: p.username,
+
+    userLetter: p.userLetter,
+
+    text: p.text,
+
+    description: p.description,
+
+    likes: p.likes,
+
+    pinned: p.pinned,
+
+    createdAt: p.createdAt,
+
+    comments: [] // no comments
+
+  }));
+
+  localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
+
+} catch (e) {
+
+  console.warn("Storage full, skipping cache");
+
+}
 
   renderPosts();
-  localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
+ 
 }
 
 async function addPostToSupabase(newPost) {
@@ -798,7 +816,7 @@ async function addPostToSupabase(newPost) {
 
   }));
 
-  localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
+  
 
 } catch (e) {
 
@@ -1117,7 +1135,7 @@ async function submitPostViewComment() {
     );
   }
 
-  localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
+  
 }
 
 // =========================
@@ -1856,7 +1874,7 @@ async function startApp() {
   loadLocalData();
   updateAreaVisibility();
 
-  const cachedPosts = localStorage.getItem("dragon_posts_cache");
+  
   if (cachedPosts) {
     try {
       posts = JSON.parse(cachedPosts);
