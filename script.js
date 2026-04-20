@@ -1736,60 +1736,48 @@ if (postBtn) {
     }
 
     const img =
-  selectedImageData ||
-  `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
+      selectedImageData ||
+      `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
 
-// 🚀 INSTANT POST (put your code here)
-const tempPost = {
-  id: "temp-" + Date.now(),
-  username: currentUser,
-  userLetter: bios[currentUser].letter || "?",
-  text,
-  description,
-  image: img,
-  likes: 0,
-  likedBy: [],
-  comments: [],
-  pinned: false,
-  createdAt: Date.now()
-};
+    const newPost = {
+      username: currentUser,
+      userLetter: bios[currentUser].letter || "?",
+      text,
+      description,
+      image: img,
+      likes: 0,
+      comments: [],
+      pinned: false,
+      createdAt: Date.now()
+    };
 
-posts.unshift(tempPost);
-renderPosts();
-localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
+    const ok = await addPostToSupabase(newPost);
+    if (!ok) return;
 
-// 🔄 Save to Supabase in background
-const ok = await addPostToSupabase(tempPost);
-if (!ok) {
-  posts = posts.filter((p) => p.id !== tempPost.id);
-  renderPosts();
-  localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
-  return;
+    const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
+    for (const mention of mentions) {
+      if (bios[mention] && mention !== currentUser) {
+        await addNotification(
+          mention,
+          `${currentUser} mentioned you in a post`,
+          null,
+          "mention"
+        );
+      }
+    }
+
+    saveLocalData();
+
+    if (postText) postText.value = "";
+    if (postDescription) postDescription.value = "";
+    if (fileInput) fileInput.value = "";
+    if (fileName) fileName.textContent = "No file chosen";
+    selectedImageData = "";
+    if (mentionList) mentionList.classList.add("hidden");
+
+    await loadPostsFromSupabase();
+  };
 }
-
-// 🔔 mentions (keep this)
-const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
-for (const mention of mentions) {
-  if (bios[mention] && mention !== currentUser) {
-    await addNotification(
-      mention,
-      `${currentUser} mentioned you in a post`,
-      null,
-      "mention"
-    );
-  }
-}
-
-// 🧹 clear inputs
-if (postText) postText.value = "";
-if (postDescription) postDescription.value = "";
-if (fileInput) fileInput.value = "";
-if (fileName) fileName.textContent = "No file chosen";
-selectedImageData = "";
-if (mentionList) mentionList.classList.add("hidden");
-
-// 🔄 sync with real DB version
-await loadPostsFromSupabase();
 
 if (saveProfileBtn) {
   saveProfileBtn.onclick = function () {
@@ -1966,4 +1954,4 @@ function subscribeToPostChanges() {
     });
 }
 
-startApp();
+startApp(); 
