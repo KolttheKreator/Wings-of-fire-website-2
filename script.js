@@ -2152,9 +2152,17 @@ function subscribeToPostChanges() {
 }
 
 async function getOrCreateConversation(otherUser) {
-  if (!currentUser || !otherUser || currentUser === otherUser) return null;
+  if (!currentUser || !otherUser || currentUser === otherUser) {
+    console.log("Blocked getOrCreateConversation:", {
+      currentUser,
+      otherUser
+    });
+    return null;
+  }
 
   const [userA, userB] = [currentUser, otherUser].sort();
+
+  console.log("Looking for conversation between:", userA, userB);
 
   const { data: existing, error: findError } = await supabase
     .from("conversations")
@@ -2164,11 +2172,17 @@ async function getOrCreateConversation(otherUser) {
     .maybeSingle();
 
   if (findError) {
-    console.error("Could not find conversation:", findError.message);
+    console.error("Could not find conversation:", findError);
+    alert("Find conversation failed: " + findError.message);
     return null;
   }
 
-  if (existing) return existing;
+  if (existing) {
+    console.log("Found existing conversation:", existing);
+    return existing;
+  }
+
+  console.log("No conversation found. Creating one now...");
 
   const { data: created, error: createError } = await supabase
     .from("conversations")
@@ -2181,28 +2195,13 @@ async function getOrCreateConversation(otherUser) {
     .single();
 
   if (createError) {
-    console.error("Could not create conversation:", createError.message);
+    console.error("Could not create conversation:", createError);
+    alert("Create conversation failed: " + createError.message);
     return null;
   }
 
+  console.log("Created conversation:", created);
   return created;
-}
-async function loadConversations() {
-  if (!currentUser) return;
-
-  const { data, error } = await supabase
-    .from("conversations")
-    .select("*")
-    .or(`user_a.eq.${currentUser},user_b.eq.${currentUser}`)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Could not load conversations:", error.message);
-    return;
-  }
-
-  conversations = data || [];
-  renderConversationList();
 }
 
 function renderConversationList() {
