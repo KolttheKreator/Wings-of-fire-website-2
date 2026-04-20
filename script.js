@@ -140,7 +140,8 @@ const profileKeywords = {
   ghost: "@Sarah",
   revived: "@Deirdre",
   squid_staff: "@Kraken_Staff",
-  crow_staff: "@Coding_Crow"
+  crow_staff: "@Coding_Crow",
+  brother: "@Paul"
 };
 
 const bios = {
@@ -154,7 +155,7 @@ const bios = {
   },
   "@Aanya": {
     letter: "A",
-    role: "Master Sketcher",
+    role: "Master Sketcher", 
     bio: "Very good at sketching. Super fun to speak with.",
     likes: "Sketching, dragons, lore, chatting",
     tag: "Artist",
@@ -187,9 +188,9 @@ const bios = {
   "@Cathy": {
     letter: "C",
     role: "Smart One",
-    bio: "The smart one. Also called Lokidottir, much to her annoyance.",
+    bio: "The smart one. Also called Lokidottir, much to   her annoyance.",
     likes: "Debating",
-    tag: "The Lokidottir",
+    tag: "The Lokidottir",   
     image: ""
   },
   "@Kaiju": {
@@ -199,7 +200,7 @@ const bios = {
     likes: "Coding_Crow Wyatt, art, Kolt",
     tag: "KAIJU",
     image: ""
-  },
+  }, 
   "@Cae": {
     letter: "C",
     role: "Quiet Nice Kid",
@@ -271,8 +272,17 @@ const bios = {
     likes: "Coding",
     tag: "Squid",
     image: ""
-  }
+  },
+  "@Paul": {
+    letter: "P",
+    role: "The Brother",
+    bio: "hello :D",
+    likes: "swimming and dogs",
+    tag: "pool",
+    image: ""
+  },
 };
+
 
 const users = Object.keys(bios);
 
