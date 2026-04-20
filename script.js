@@ -772,6 +772,7 @@ async function loadPostsFromSupabase() {
 }));
 
   renderPosts();
+  localStorage.setItem("dragon_posts_cache", JSON.stringify(posts));
 }
 
 async function addPostToSupabase(newPost) {
@@ -1827,6 +1828,16 @@ if (areaSelect) {
 async function startApp() {
   loadLocalData();
   updateAreaVisibility();
+
+  const cachedPosts = localStorage.getItem("dragon_posts_cache");
+  if (cachedPosts) {
+    try {
+      posts = JSON.parse(cachedPosts);
+      renderPosts();
+    } catch (error) {
+      console.error("Could not load cached posts:", error);
+    }
+  }
 
   await loadPostsFromSupabase();
 
