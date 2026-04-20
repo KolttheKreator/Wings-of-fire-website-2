@@ -415,6 +415,32 @@ async function addNotification(targetUser, text, postId = null, type = "general"
 
   return true;
 }
+async function uploadProfileImage(file) {
+  if (!currentUser || !file) return null;
+
+  const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
+  const fileExt = file.name.split(".").pop();
+  const filePath = `${safeUser}/avatar.${fileExt}`;
+
+  const { error: uploadError } = await supabase
+    .storage
+    .from("avatars")
+    .upload(filePath, file, {
+      upsert: true
+    });
+
+  if (uploadError) {
+    console.error("Could not upload avatar:", uploadError.message);
+    return null;
+  }
+
+  const { data } = supabase
+    .storage
+    .from("avatars")
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
 async function loadNotificationsFromSupabase() {
   if (!currentUser) {
     notifications = [];
@@ -830,6 +856,49 @@ async function updatePostInSupabase(postId, updates) {
   }
 
   return true;
+}
+async function saveProfileToSupabase(username) {
+  const profile = bios[username];
+  if (!profile) return false;
+
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({
+      username,
+      role: profile.role,
+      bio: profile.bio,
+      likes: profile.likes,
+      tag: profile.tag,
+      image: profile.image || ""
+    });
+
+  if (error) {
+    console.error("Could not save profile:", error.message);
+    return false;
+  }
+
+  return true;
+}
+
+async function loadProfilesFromSupabase() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*");
+
+  if (error) {
+    console.error("Could not load profiles:", error.message);
+    return;
+  }
+
+  (data || []).forEach((profile) => {
+    if (!bios[profile.username]) return;
+
+    bios[profile.username].role = profile.role || bios[profile.username].role;
+    bios[profile.username].bio = profile.bio || bios[profile.username].bio;
+    bios[profile.username].likes = profile.likes || bios[profile.username].likes;
+    bios[profile.username].tag = profile.tag || bios[profile.username].tag;
+    bios[profile.username].image = profile.image || bios[profile.username].image;
+  });
 }
 
 async function deletePostFromSupabase(postId) {
@@ -1665,7 +1734,7 @@ if (threadBackdrop) {
 }
 
 if (profilePicInput) {
-  profilePicInput.addEventListener("change", function () {
+  profilePicInput.addEventListener("change", async function () {
     const file = profilePicInput.files?.[0];
 
     if (!file) {
@@ -1675,12 +1744,42 @@ if (profilePicInput) {
 
     if (profilePicName) profilePicName.textContent = file.name;
 
-    const reader = new FileReader();
-    reader.onload = function (event) {
-      setProfileImage(event.target?.result || "");
-      saveLocalData();
-    };
-    reader.readAsDataURL(file);
+    // 🔥 Upload to Supabase Storage
+    const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${safeUser}/avatar.${fileExt}`;
+
+    const { error: uploadError } = await supabase
+      .storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      console.error("Upload failed:", uploadError.message);
+      alert("Could not upload profile picture.");
+      return;
+    }
+
+    // 🔥 Get public URL
+    const { data } = supabase
+      .storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    const publicUrl = data.publicUrl;
+
+    // ✅ SAVE TO DATABASE (THIS IS YOUR LINE)
+    await supabase.from("profiles").upsert({
+      username: currentUser,
+      image: publicUrl
+    });
+
+    // ✅ ALSO SAVE LOCALLY (for instant UI)
+    bios[currentUser].image = publicUrl;
+    saveLocalData();
+
+    refreshMainProfileUI();
+    renderPosts();
   });
 }
 
@@ -1789,7 +1888,7 @@ if (postBtn) {
 }
 
 if (saveProfileBtn) {
-  saveProfileBtn.onclick = function () {
+  saveProfileBtn.onclick = async function () {
     if (!currentUser || !bios[currentUser]) return;
 
     bios[currentUser].role = (editRoleInput ? editRoleInput.value.trim() : "") || "Member";
@@ -1797,6 +1896,7 @@ if (saveProfileBtn) {
     bios[currentUser].likes = (editLikesInput ? editLikesInput.value.trim() : "") || "Cool stuff";
     bios[currentUser].tag = (editTagInput ? editTagInput.value.trim() : "") || "Dragon";
 
+    await saveProfileToSupabase(currentUser);
     saveLocalData();
     refreshMainProfileUI();
     closeProfileEditor();
@@ -1862,7 +1962,7 @@ if (areaSelect) {
 async function startApp() {
 
   loadLocalData();
-
+await loadProfilesFromSupabase();
   updateAreaVisibility();
 
   // ⚡ instant load from cache
