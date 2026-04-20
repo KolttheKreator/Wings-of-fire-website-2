@@ -46,7 +46,7 @@
 
           <button id="logoutBtn" class="icon-btn" type="button">🚪 Log Out</button>
           <button id="openMessagesBtn" class="icon-btn">💬</button>
-          <button id="messageUserBtn" class="post-btn">Message</button>
+          
 
           <button id="topAvatar" class="profile-pill profile-button" type="button">
             <span id="topAvatarLetter">K</span>
@@ -227,12 +227,22 @@
       <button id="closeBioBtn" class="close-bio-btn" type="button">✖</button>
 
       <div class="bio-header">
-        <div id="bioAvatar" class="bio-avatar">K</div>
-        <div>
-          <h3 id="bioName">@Kolt</h3>
-          <p id="bioRole" class="bio-role">Creator</p>
-        </div>
-      </div>
+  <div id="bioAvatar" class="bio-avatar">K</div>
+
+  <div>
+    <h3 id="bioName">@Kolt</h3>
+    <p id="bioRole" class="bio-role">Creator</p>
+  </div>
+
+  <button
+    id="messageUserBtn"
+    class="message-user-btn hidden"
+    type="button"
+    aria-label="Message user"
+  >
+    💬
+  </button>
+</div>
 
       <p id="bioText" class="bio-text">Bio goes here.</p>
 
