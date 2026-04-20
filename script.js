@@ -1273,7 +1273,7 @@ function renderPosts() {
     if (likeBtn) {
   const alreadyLiked = currentUser && post.likedBy.includes(currentUser);
 
-  likeBtn.textContent = alreadyLiked ? "💜 Liked" : "💜 Like";
+  likeBtn.textContent = alreadyLiked ? "❤️ Liked" : "❤️ Like";
   likeBtn.disabled = !!alreadyLiked;
 
   likeBtn.onclick = async function (e) {
