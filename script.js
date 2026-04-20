@@ -293,7 +293,11 @@ const bios = {
     image: ""
   },
 };
+const admins = ["@Kolt", "@Coding_Crow", "@Kraken_Staff"];
 
+function isAdmin(user) {
+  return admins.includes(user);
+}
 
 const users = Object.keys(bios);
 
@@ -1381,25 +1385,29 @@ function renderPosts() {
     }
 
     if (deleteBtn) {
-      if (post.username === currentUser) {
-        deleteBtn.classList.remove("hidden");
+  if (post.username === currentUser || isAdmin(currentUser)) {
+    deleteBtn.classList.remove("hidden");
 
-        deleteBtn.onclick = async function (e) {
-          e.stopPropagation();
+    deleteBtn.onclick = async function (e) {
+      e.stopPropagation();
 
-          const confirmed = confirm("Delete this post?");
-          if (!confirmed) return;
+      const confirmed = confirm(
+        isAdmin(currentUser) && post.username !== currentUser
+          ? `Delete ${post.username}'s post?`
+          : "Delete this post?"
+      );
+      if (!confirmed) return;
 
-          const ok = await deletePostFromSupabase(post.id);
-          if (!ok) return;
+      const ok = await deletePostFromSupabase(post.id);
+      if (!ok) return;
 
-          closePostView();
-          await loadPostsFromSupabase();
-        };
-      } else {
-        deleteBtn.classList.add("hidden");
-      }
-    }
+      closePostView();
+      await loadPostsFromSupabase();
+    };
+  } else {
+    deleteBtn.classList.add("hidden");
+  }
+}
 
     if (editBtn) {
       if (post.username === currentUser) {
