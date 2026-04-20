@@ -701,21 +701,32 @@ function refreshMainProfileUI() {
 function openBio(usernameText) {
   const bio = bios[usernameText];
   if (!bio) return;
-if (messageUserBtn) {
-  if (!currentUser || usernameText === currentUser) {
-    messageUserBtn.classList.add("hidden");
-  } else {
-    messageUserBtn.classList.remove("hidden");
-    messageUserBtn.onclick = async function () {
-      const conversation = await getOrCreateConversation(usernameText);
-      if (!conversation) return;
 
-      closeBio();
-      await loadConversations();
-      await openConversation(conversation.id, usernameText);
-    };
+  if (messageUserBtn) {
+    if (!currentUser || usernameText === currentUser) {
+      messageUserBtn.classList.add("hidden");
+      messageUserBtn.onclick = null;
+    } else {
+      messageUserBtn.classList.remove("hidden");
+
+      messageUserBtn.onclick = async function () {
+        console.log("Message button clicked for:", usernameText);
+
+        const conversation = await getOrCreateConversation(usernameText);
+        console.log("Conversation result:", conversation);
+
+        if (!conversation) {
+          alert("Could not open conversation.");
+          return;
+        }
+
+        closeBio();
+        await loadConversations();
+        await openConversation(conversation.id, usernameText);
+      };
+    }
   }
-}
+
   if (bioAvatar) {
     if (bio.image) {
       bioAvatar.innerHTML = `<img src="${bio.image}" alt="Profile picture">`;
