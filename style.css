@@ -426,9 +426,10 @@ body {
 }
 
 .card-text {
-  margin: 0 0 16px;
-  line-height: 1.55;
-  font-size: 15px;
+  max-height: 120px;     /* controls how tall it can get */
+  overflow-y: auto;      /* enables vertical scrolling */
+  overflow-x: hidden;
+  padding-right: 6px;    /* prevents text from hitting scrollbar */
 }
 
 .mention {
