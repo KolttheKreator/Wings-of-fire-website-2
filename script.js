@@ -761,7 +761,6 @@ async function loadPostsFromSupabase() {
   id: post.id,
   username: post.username,
   userLetter: post.user_letter || "",
-  profileImage: post.profile_image || "",
   text: post.text,
   description: post.description || "",
   image: post.image || "",
@@ -773,24 +772,24 @@ async function loadPostsFromSupabase() {
 }));
 
   try {
-    const lightweightPosts = posts.slice(0, 20).map((p) => ({
-  id: p.id,
-  username: p.username,
-  userLetter: p.userLetter,
-  profileImage: p.profileImage || "",
-  text: p.text,
-  description: p.description,
-  image: typeof p.image === "string" && p.image.startsWith("http") ? p.image : "",
-  likes: p.likes,
-  likedBy: p.likedBy,
-  pinned: p.pinned,
-  createdAt: p.createdAt,
-  comments: []
-}));
-    localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
-  } catch (e) {
-    console.warn("Storage full, skipping cache");
-  }
+  const lightweightPosts = posts.slice(0, 20).map((p) => ({
+    id: p.id,
+    username: p.username,
+    userLetter: p.userLetter,
+    text: p.text,
+    description: p.description,
+    image: typeof p.image === "string" && p.image.startsWith("http") ? p.image : "",
+    likes: p.likes,
+    likedBy: p.likedBy,
+    pinned: p.pinned,
+    createdAt: p.createdAt,
+    comments: []
+  }));
+
+  localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
+} catch (e) {
+  console.warn("Storage full, skipping cache");
+}
 
   renderPosts();
 }
@@ -799,7 +798,6 @@ async function addPostToSupabase(newPost) {
   const { error } = await supabase.from("posts").insert({
     username: newPost.username,
     user_letter: newPost.userLetter,
-    profile_image: newPost.profileImage || "",
     text: newPost.text,
     description: newPost.description,
     image: newPost.image,
@@ -808,10 +806,7 @@ async function addPostToSupabase(newPost) {
     comments: newPost.comments,
     pinned: newPost.pinned,
     created_at: newPost.createdAt
-
- 
   });
-  
 
   if (error) {
     console.error("Could not save post:", error.message);
@@ -868,7 +863,7 @@ function openPostView(post) {
   }
 
   const bio = bios[post.username];
-  const avatarImage = post.profileImage || bio?.image || "";
+  const avatarImage = bio?.image || "";
 
   if (postViewAvatar) {
     if (avatarImage) {
@@ -1198,7 +1193,7 @@ function renderPosts() {
 
     if (tinyAvatar) {
   const bio = bios[post.username];
-  const avatarImage = post.profileImage || bio?.image || "";
+  const avatarImage = bio?.image || "";
 
   if (avatarImage) {
     tinyAvatar.innerHTML = `<img src="${avatarImage}" alt="Profile picture">`;
