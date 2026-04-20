@@ -293,7 +293,7 @@ const bios = {
     image: ""
   },
 };
-const admins = ["@Kolt", "@Coding_Crow", "@Koding_Kraken"];
+const admins = ["@Coding_Crow", "@Koding_Kraken"];
 
 function isAdmin(user) {
   return admins.includes(user);
