@@ -748,17 +748,18 @@ async function loadPostsFromSupabase() {
   }
 
   posts = (data || []).map((post) => ({
-    id: post.id,
-    username: post.username,
-    userLetter: post.user_letter || "",
-    text: post.text,
-    description: post.description || "",
-    image: post.image || "",
-    likes: post.likes || 0,
-    comments: Array.isArray(post.comments) ? post.comments : [],
-    pinned: !!post.pinned,
-    createdAt: Number(post.created_at) || Date.now()
-  }));
+  id: post.id,
+  username: post.username,
+  userLetter: post.user_letter || "",
+  text: post.text,
+  description: post.description || "",
+  image: post.image || "",
+  likes: post.likes || 0,
+  likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
+  comments: Array.isArray(post.comments) ? post.comments : [],
+  pinned: !!post.pinned,
+  createdAt: Number(post.created_at) || Date.now()
+}));
 
   renderPosts();
 }
@@ -771,6 +772,7 @@ async function addPostToSupabase(newPost) {
     description: newPost.description,
     image: newPost.image,
     likes: newPost.likes,
+    liked_by: newPost.likedBy,
     comments: newPost.comments,
     pinned: newPost.pinned,
     created_at: newPost.createdAt
@@ -1259,32 +1261,47 @@ function renderPosts() {
     }
 
     if (likeBtn) {
-      likeBtn.onclick = async function (e) {
-        e.stopPropagation();
+  const alreadyLiked = currentUser && post.likedBy.includes(currentUser);
 
-        const ok = await updatePostInSupabase(post.id, {
-          likes: post.likes + 1
-        });
+  likeBtn.textContent = alreadyLiked ? "💜 Liked" : "💜 Like";
+  likeBtn.disabled = !!alreadyLiked;
 
-        if (!ok) return;
+  likeBtn.onclick = async function (e) {
+    e.stopPropagation();
 
-        if (currentUser && post.username !== currentUser) {
-          await addNotification(
-            post.username,
-            `${currentUser} liked your post`,
-            post.id,
-            "like"
-          );
-        }
+    if (!currentUser) return;
 
-        await loadPostsFromSupabase();
-
-        const updatedPost = posts.find((p) => p.id === post.id);
-        if (activePostId === post.id && updatedPost) {
-          openPostView(updatedPost);
-        }
-      };
+    if (post.likedBy.includes(currentUser)) {
+      alert("You already liked this post.");
+      return;
     }
+
+    const updatedLikedBy = [...post.likedBy, currentUser];
+
+    const ok = await updatePostInSupabase(post.id, {
+      likes: updatedLikedBy.length,
+      liked_by: updatedLikedBy
+    });
+
+    if (!ok) return;
+
+    if (post.username !== currentUser) {
+      await addNotification(
+        post.username,
+        `${currentUser} liked your post`,
+        post.id,
+        "like"
+      );
+    }
+
+    await loadPostsFromSupabase();
+
+    const updatedPost = posts.find((p) => p.id === post.id);
+    if (activePostId === post.id && updatedPost) {
+      openPostView(updatedPost);
+    }
+  };
+}
 
     if (commentToggleBtn) {
       commentToggleBtn.onclick = function (e) {
@@ -1686,16 +1703,17 @@ if (postBtn) {
       `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
 
     const newPost = {
-      username: currentUser,
-      userLetter: bios[currentUser].letter || "?",
-      text,
-      description,
-      image: img,
-      likes: 0,
-      comments: [],
-      pinned: false,
-      createdAt: Date.now()
-    };
+  username: currentUser,
+  userLetter: bios[currentUser].letter || "?",
+  text,
+  description,
+  image: img,
+  likes: 0,
+  likedBy: [],
+  comments: [],
+  pinned: false,
+  createdAt: Date.now()
+};
 
     const ok = await addPostToSupabase(newPost);
     if (!ok) return;
