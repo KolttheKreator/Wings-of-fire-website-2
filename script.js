@@ -758,24 +758,26 @@ async function loadPostsFromSupabase() {
   }
 
   posts = (data || []).map((post) => ({
-    id: post.id,
-    username: post.username,
-    userLetter: post.user_letter || "",
-    text: post.text || "",
-    description: post.description || "",
-    image: post.image || "",
-    likes: post.likes || 0,
-    likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
-    comments: Array.isArray(post.comments) ? post.comments : [],
-    pinned: !!post.pinned,
-    createdAt: Number(post.created_at) || Date.now()
-  }));
+  id: post.id,
+  username: post.username,
+  userLetter: post.user_letter || "",
+  profileImage: post.profile_image || "",
+  text: post.text,
+  description: post.description || "",
+  image: post.image || "",
+  likes: post.likes || 0,
+  likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
+  comments: Array.isArray(post.comments) ? post.comments : [],
+  pinned: !!post.pinned,
+  createdAt: Number(post.created_at) || Date.now()
+}));
 
   try {
     const lightweightPosts = posts.slice(0, 20).map((p) => ({
   id: p.id,
   username: p.username,
   userLetter: p.userLetter,
+  profileImage: p.profileImage || "",
   text: p.text,
   description: p.description,
   image: typeof p.image === "string" && p.image.startsWith("http") ? p.image : "",
@@ -785,7 +787,6 @@ async function loadPostsFromSupabase() {
   createdAt: p.createdAt,
   comments: []
 }));
-
     localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
   } catch (e) {
     console.warn("Storage full, skipping cache");
@@ -798,32 +799,19 @@ async function addPostToSupabase(newPost) {
   const { error } = await supabase.from("posts").insert({
     username: newPost.username,
     user_letter: newPost.userLetter,
+    profile_image: newPost.profileImage || "",
     text: newPost.text,
     description: newPost.description,
     image: newPost.image,
     likes: newPost.likes,
-    liked_by: newPost.likedBy,
+    liked_by: newPost.likedBy || [],
     comments: newPost.comments,
     pinned: newPost.pinned,
     created_at: newPost.createdAt
+
+ 
   });
-  try {
-
-  const lightweightPosts = posts.slice(0, 20).map(p => ({
-
-    ...p,
-
-    image: "" // remove big images
-
-  }));
-
   
-
-} catch (e) {
-
-  console.warn("Storage full, skipping cache");
-
-}
 
   if (error) {
     console.error("Could not save post:", error.message);
@@ -880,10 +868,11 @@ function openPostView(post) {
   }
 
   const bio = bios[post.username];
+  const avatarImage = post.profileImage || bio?.image || "";
 
   if (postViewAvatar) {
-    if (bio && bio.image) {
-      postViewAvatar.innerHTML = `<img src="${bio.image}" alt="Profile picture">`;
+    if (avatarImage) {
+      postViewAvatar.innerHTML = `<img src="${avatarImage}" alt="Profile picture">`;
     } else {
       postViewAvatar.textContent = bio?.letter || post.userLetter || "?";
     }
@@ -1208,13 +1197,15 @@ function renderPosts() {
     }
 
     if (tinyAvatar) {
-      const bio = bios[post.username];
-      if (bio && bio.image) {
-        tinyAvatar.innerHTML = `<img src="${bio.image}" alt="Profile picture">`;
-      } else {
-        tinyAvatar.textContent = bio?.letter || post.userLetter || "?";
-      }
-    }
+  const bio = bios[post.username];
+  const avatarImage = post.profileImage || bio?.image || "";
+
+  if (avatarImage) {
+    tinyAvatar.innerHTML = `<img src="${avatarImage}" alt="Profile picture">`;
+  } else {
+    tinyAvatar.textContent = bio?.letter || post.userLetter || "?";
+  }
+}
 
     if (timeStamp) {
       timeStamp.textContent = formatTime(post.createdAt);
@@ -1763,6 +1754,7 @@ if (postBtn) {
     const newPost = {
   username: currentUser,
   userLetter: bios[currentUser].letter || "?",
+  profileImage: bios[currentUser].image || "",
   text,
   description,
   image: img,
