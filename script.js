@@ -397,13 +397,27 @@ function isVideoSource(src) {
   return value.startsWith("data:video/") || /\.(mp4|webm|ogg|mov|m4v)$/.test(value);
 }
 
+function isOldGeneratedPostImage(src) {
+  if (typeof src !== "string" || src.trim() === "") return false;
+
+  try {
+    const url = new URL(src);
+    return url.pathname === "/500/350" && url.searchParams.has("random");
+  } catch (error) {
+    return false;
+  }
+}
+
 function hasPostMedia(post) {
-  return typeof post?.image === "string" && post.image.trim() !== "";
+  return typeof post?.image === "string" &&
+    post.image.trim() !== "" &&
+    !isOldGeneratedPostImage(post.image);
 }
 
 function getCacheablePostMedia(image) {
   if (typeof image !== "string") return "";
   if (image.startsWith("data:")) return "";
+  if (isOldGeneratedPostImage(image)) return "";
   return image;
 }
 
