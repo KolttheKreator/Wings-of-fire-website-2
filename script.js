@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js";
 const supabaseUrl = "https://cvjkxmgfiaoetepwfyqi.supabase.co";
 const supabaseKey = "sb_publishable_92kz51al3ZuihOY047N5Gw_zRqOGQ2v";
 const supabase = createClient(supabaseUrl, supabaseKey);
-const postsCacheKey = "dragon_posts_cache_v2";
+const postsCacheKey = "dragon_posts_cache_v3";
 
 // =========================
 // DOM
@@ -2243,27 +2243,30 @@ async function loadConversations() {
 async function startApp() {
 
   loadLocalData();
-await loadProfilesFromSupabase();
   updateAreaVisibility();
 
-  // ⚡ instant load from cache
-
+  // Instant load from the last lightweight post snapshot.
   localStorage.removeItem("dragon_posts_cache");
-  localStorage.removeItem(postsCacheKey);
+  localStorage.removeItem("dragon_posts_cache_v2");
   const cached = localStorage.getItem(postsCacheKey);
 
-if (cached) {
-  try {
-    posts = JSON.parse(cached);
-    renderPosts();
-  } catch (e) {
-    console.warn("Cache parse failed");
+  if (cached) {
+    try {
+      posts = JSON.parse(cached);
+      renderPosts();
+    } catch (e) {
+      console.warn("Cache parse failed");
+      localStorage.removeItem(postsCacheKey);
+    }
   }
-}
 
-  // then fetch real data
-
-  await loadPostsFromSupabase();
+  await Promise.all([
+    loadProfilesFromSupabase().then(() => {
+      refreshMainProfileUI();
+      renderPosts();
+    }),
+    loadPostsFromSupabase()
+  ]);
 
   if (currentUser && bios[currentUser]) {
     hideLoginScreen();
