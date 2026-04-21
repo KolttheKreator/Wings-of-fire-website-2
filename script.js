@@ -491,14 +491,15 @@ async function uploadProfileImage(file) {
 
   const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
   const fileExt = file.name.split(".").pop() || "png";
-  const filePath = `${safeUser}/avatar-${Date.now()}.${fileExt}`;
+  const cacheVersion = Date.now();
+  const filePath = `${safeUser}/avatar.${fileExt}`;
 
   const { error: uploadError } = await supabase
     .storage
     .from("avatars")
     .upload(filePath, file, {
       cacheControl: "3600",
-      upsert: false,
+      upsert: true,
       contentType: file.type || "image/png"
     });
 
@@ -512,7 +513,7 @@ async function uploadProfileImage(file) {
     .from("avatars")
     .getPublicUrl(filePath);
 
-  return data.publicUrl;
+  return `${data.publicUrl}?v=${cacheVersion}`;
 }
 
 async function uploadPostVideo(file) {
