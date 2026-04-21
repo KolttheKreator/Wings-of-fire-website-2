@@ -488,6 +488,7 @@ async function addNotification(targetUser, text, postId = null, type = "general"
 }
 async function uploadProfileImage(file) {
   if (!currentUser || !file) return null;
+  if (!file.type.startsWith("image/")) return null;
 
   const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
   const fileExt = file.name.split(".").pop() || "png";
@@ -505,7 +506,8 @@ async function uploadProfileImage(file) {
 
   if (uploadError) {
     console.error("Could not upload avatar:", uploadError.message);
-    return null;
+    console.warn("Falling back to compressed profile image in the profiles table.");
+    return resizeProfileImageToDataUrl(file);
   }
 
   const { data } = supabase
@@ -514,6 +516,41 @@ async function uploadProfileImage(file) {
     .getPublicUrl(filePath);
 
   return `${data.publicUrl}?v=${cacheVersion}`;
+}
+
+function resizeProfileImageToDataUrl(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => resolve(null);
+    reader.onload = () => {
+      const img = new Image();
+
+      img.onerror = () => resolve(null);
+      img.onload = () => {
+        const maxSize = 360;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+
+      img.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
 
 async function uploadPostVideo(file) {
@@ -2002,6 +2039,12 @@ if (profilePicInput) {
 
     if (!file) {
       if (profilePicName) profilePicName.textContent = "No profile pic chosen";
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      if (profilePicName) profilePicName.textContent = "No profile pic chosen";
+      alert("Please choose an image file for your profile picture.");
       return;
     }
 
