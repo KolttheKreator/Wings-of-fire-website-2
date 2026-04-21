@@ -401,6 +401,12 @@ function hasPostMedia(post) {
   return typeof post?.image === "string" && post.image.trim() !== "";
 }
 
+function getCacheablePostMedia(image) {
+  if (typeof image !== "string") return "";
+  if (image.startsWith("data:")) return "";
+  return image;
+}
+
 function getSortedPosts() {
   const mode = sortSelect ? sortSelect.value : "recent";
   const sorted = [...posts];
@@ -953,7 +959,7 @@ async function loadPostsFromSupabase() {
     userLetter: p.userLetter,
     text: p.text,
     description: p.description,
-    image: typeof p.image === "string" ? p.image : "",
+    image: getCacheablePostMedia(p.image),
     likes: p.likes,
     likedBy: p.likedBy,
     pinned: p.pinned,
@@ -2246,6 +2252,7 @@ await loadProfilesFromSupabase();
   // ⚡ instant load from cache
 
   localStorage.removeItem("dragon_posts_cache");
+  localStorage.removeItem(postsCacheKey);
   const cached = localStorage.getItem(postsCacheKey);
 
 if (cached) {
