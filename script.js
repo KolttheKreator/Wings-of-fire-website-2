@@ -77,6 +77,7 @@ const postViewBackdrop = document.getElementById("postViewBackdrop");
 const closePostViewBtn = document.getElementById("closePostViewBtn");
 const postViewImage = document.getElementById("postViewImage");
 const postViewVideo = document.getElementById("postViewVideo");
+const postViewPlaceholder = document.getElementById("postViewPlaceholder");
 const postViewAvatar = document.getElementById("postViewAvatar");
 const postViewUsername = document.getElementById("postViewUsername");
 const postViewTime = document.getElementById("postViewTime");
@@ -1065,9 +1066,10 @@ async function deletePostFromSupabase(postId) {
 function openPostView(post) {
   activePostId = post.id;
 
-  if (postViewImage && postViewVideo) {
+  if (postViewImage && postViewVideo && postViewPlaceholder) {
     postViewImage.style.display = "none";
     postViewVideo.style.display = "none";
+    postViewPlaceholder.style.display = "none";
     postViewVideo.pause();
     postViewVideo.removeAttribute("src");
     postViewVideo.load();
@@ -1081,6 +1083,9 @@ function openPostView(post) {
       postViewImage.src = post.image;
       postViewImage.style.display = "block";
       postViewImage.classList.remove("hidden");
+    } else {
+      postViewPlaceholder.style.display = "block";
+      postViewPlaceholder.classList.remove("hidden");
     }
   }
 
@@ -1361,6 +1366,7 @@ function renderPosts() {
     const card = clone.querySelector(".card");
     const cardImage = clone.querySelector(".card-image");
     const cardVideo = clone.querySelector(".card-video");
+    const cardPlaceholder = clone.querySelector(".card-placeholder");
     const username = clone.querySelector(".username");
     const tinyAvatar = clone.querySelector(".tiny-avatar");
     const timeStamp = clone.querySelector(".time-stamp");
@@ -1399,9 +1405,10 @@ function renderPosts() {
       });
     }
 
-    if (cardImage && cardVideo) {
+    if (cardImage && cardVideo && cardPlaceholder) {
       cardImage.style.display = "none";
       cardVideo.style.display = "none";
+      cardPlaceholder.style.display = "none";
       cardVideo.removeAttribute("src");
       cardImage.removeAttribute("src");
 
@@ -1413,6 +1420,9 @@ function renderPosts() {
         cardImage.src = post.image;
         cardImage.style.display = "block";
         cardImage.classList.remove("hidden");
+      } else {
+        cardPlaceholder.style.display = "block";
+        cardPlaceholder.classList.remove("hidden");
       }
     }
 
@@ -2071,9 +2081,7 @@ if (postBtn) {
         return;
       }
 
-      const img =
-        selectedMedia ||
-        `https://picsum.photos/500/350?random=${Math.floor(Math.random() * 1000)}`;
+      const img = selectedMedia || "";
 
       const newPost = {
         username: currentUser,
