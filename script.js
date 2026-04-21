@@ -131,6 +131,7 @@ let editingPostId = null;
 let activeThreadPostId = null;
 let activeThreadCommentId = null;
 let postsChannel = null;
+let profilesChannel = null;
 let conversations = [];
 let activeConversationId = null;
 let activeConversationUser = null;
@@ -489,14 +490,16 @@ async function uploadProfileImage(file) {
   if (!currentUser || !file) return null;
 
   const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
-  const fileExt = file.name.split(".").pop();
-  const filePath = `${safeUser}/avatar.${fileExt}`;
+  const fileExt = file.name.split(".").pop() || "png";
+  const filePath = `${safeUser}/avatar-${Date.now()}.${fileExt}`;
 
   const { error: uploadError } = await supabase
     .storage
     .from("avatars")
     .upload(filePath, file, {
-      upsert: true
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "image/png"
     });
 
   if (uploadError) {
@@ -1059,15 +1062,17 @@ async function loadProfilesFromSupabase() {
     return;
   }
 
-  (data || []).forEach((profile) => {
-    if (!bios[profile.username]) return;
+  (data || []).forEach(applyProfileFromSupabase);
+}
 
-    bios[profile.username].role = profile.role || bios[profile.username].role;
-    bios[profile.username].bio = profile.bio || bios[profile.username].bio;
-    bios[profile.username].likes = profile.likes || bios[profile.username].likes;
-    bios[profile.username].tag = profile.tag || bios[profile.username].tag;
-    bios[profile.username].image = profile.image || bios[profile.username].image;
-  });
+function applyProfileFromSupabase(profile) {
+  if (!profile || !bios[profile.username]) return;
+
+  bios[profile.username].role = profile.role || bios[profile.username].role;
+  bios[profile.username].bio = profile.bio || bios[profile.username].bio;
+  bios[profile.username].likes = profile.likes || bios[profile.username].likes;
+  bios[profile.username].tag = profile.tag || bios[profile.username].tag;
+  bios[profile.username].image = profile.image || bios[profile.username].image;
 }
 
 async function deletePostFromSupabase(postId) {
@@ -2001,40 +2006,17 @@ if (profilePicInput) {
 
     if (profilePicName) profilePicName.textContent = file.name;
 
-    // 🔥 Upload to Supabase Storage
-    const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
-    const fileExt = file.name.split(".").pop();
-    const filePath = `${safeUser}/avatar.${fileExt}`;
-
-    const { error: uploadError } = await supabase
-      .storage
-      .from("avatars")
-      .upload(filePath, file, { upsert: true });
-
-    if (uploadError) {
-      console.error("Upload failed:", uploadError.message);
+    const publicUrl = await uploadProfileImage(file);
+    if (!publicUrl) {
       alert("Could not upload profile picture.");
       return;
     }
 
-    // 🔥 Get public URL
-    const { data } = supabase
-      .storage
-      .from("avatars")
-      .getPublicUrl(filePath);
-
-    const publicUrl = data.publicUrl;
-
-    // ✅ SAVE TO DATABASE (THIS IS YOUR LINE)
-    await supabase.from("profiles").upsert({
-      username: currentUser,
-      image: publicUrl
-    });
-
-    // ✅ ALSO SAVE LOCALLY (for instant UI)
     bios[currentUser].image = publicUrl;
-    saveLocalData();
+    const saved = await saveProfileToSupabase(currentUser);
+    if (!saved) return;
 
+    saveLocalData();
     refreshMainProfileUI();
     renderPosts();
   });
@@ -2304,7 +2286,31 @@ if (cached) {
   }
 
   subscribeToPostChanges();
+  subscribeToProfileChanges();
   subscribeToNotificationChanges();
+}
+function subscribeToProfileChanges() {
+  if (profilesChannel) return;
+
+  profilesChannel = supabase
+    .channel("public-profiles-live")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "profiles"
+      },
+      (payload) => {
+        applyProfileFromSupabase(payload.new);
+        saveLocalData();
+        refreshMainProfileUI();
+        renderPosts();
+      }
+    )
+    .subscribe((status) => {
+      console.log("Supabase profiles live status:", status);
+    });
 }
 function subscribeToNotificationChanges() {
   if (!currentUser) return;
