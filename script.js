@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js";
 const supabaseUrl = "https://cvjkxmgfiaoetepwfyqi.supabase.co";
 const supabaseKey = "sb_publishable_92kz51al3ZuihOY047N5Gw_zRqOGQ2v";
 const supabase = createClient(supabaseUrl, supabaseKey);
+const postsCacheKey = "dragon_posts_cache_v2";
 
 // =========================
 // DOM
@@ -394,6 +395,10 @@ function highlightMentions(text) {
 function isVideoSource(src) {
   const value = String(src || "").split("?")[0].toLowerCase();
   return value.startsWith("data:video/") || /\.(mp4|webm|ogg|mov|m4v)$/.test(value);
+}
+
+function hasPostMedia(post) {
+  return typeof post?.image === "string" && post.image.trim() !== "";
 }
 
 function getSortedPosts() {
@@ -948,7 +953,7 @@ async function loadPostsFromSupabase() {
     userLetter: p.userLetter,
     text: p.text,
     description: p.description,
-    image: typeof p.image === "string" && p.image.startsWith("http") ? p.image : "",
+    image: typeof p.image === "string" ? p.image : "",
     likes: p.likes,
     likedBy: p.likedBy,
     pinned: p.pinned,
@@ -956,7 +961,7 @@ async function loadPostsFromSupabase() {
     comments: []
   }));
 
-  localStorage.setItem("dragon_posts_cache", JSON.stringify(lightweightPosts));
+  localStorage.setItem(postsCacheKey, JSON.stringify(lightweightPosts));
 } catch (e) {
   console.warn("Storage full, skipping cache");
 }
@@ -1067,6 +1072,8 @@ function openPostView(post) {
   activePostId = post.id;
 
   if (postViewImage && postViewVideo && postViewPlaceholder) {
+    const hasMedia = hasPostMedia(post);
+
     postViewImage.style.display = "none";
     postViewVideo.style.display = "none";
     postViewPlaceholder.style.display = "none";
@@ -1075,11 +1082,11 @@ function openPostView(post) {
     postViewVideo.load();
     postViewImage.removeAttribute("src");
 
-    if (post.image && isVideoSource(post.image)) {
+    if (hasMedia && isVideoSource(post.image)) {
       postViewVideo.src = post.image;
       postViewVideo.style.display = "block";
       postViewVideo.classList.remove("hidden");
-    } else if (post.image) {
+    } else if (hasMedia) {
       postViewImage.src = post.image;
       postViewImage.style.display = "block";
       postViewImage.classList.remove("hidden");
@@ -1406,17 +1413,19 @@ function renderPosts() {
     }
 
     if (cardImage && cardVideo && cardPlaceholder) {
+      const hasMedia = hasPostMedia(post);
+
       cardImage.style.display = "none";
       cardVideo.style.display = "none";
       cardPlaceholder.style.display = "none";
       cardVideo.removeAttribute("src");
       cardImage.removeAttribute("src");
 
-      if (post.image && isVideoSource(post.image)) {
+      if (hasMedia && isVideoSource(post.image)) {
         cardVideo.src = post.image;
         cardVideo.style.display = "block";
         cardVideo.classList.remove("hidden");
-      } else if (post.image) {
+      } else if (hasMedia) {
         cardImage.src = post.image;
         cardImage.style.display = "block";
         cardImage.classList.remove("hidden");
@@ -2236,7 +2245,8 @@ await loadProfilesFromSupabase();
 
   // ⚡ instant load from cache
 
-  const cached = localStorage.getItem("dragon_posts_cache");
+  localStorage.removeItem("dragon_posts_cache");
+  const cached = localStorage.getItem(postsCacheKey);
 
 if (cached) {
   try {
