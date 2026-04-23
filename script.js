@@ -1460,6 +1460,7 @@ async function submitThreadReply() {
     (comment) => String(comment.id) === String(activeThreadCommentId)
   );
   if (!parentComment) return;
+  const oldComments = structuredClone(post.comments);
 
   const updatedComments = post.comments.map((comment) => {
     if (String(comment.id) !== String(activeThreadCommentId)) return comment;
@@ -1480,20 +1481,7 @@ async function submitThreadReply() {
     };
   });
 
-  const ok = await updatePostInSupabase(post.id, {
-    comments: updatedComments
-  });
-
-  if (!ok) return;
-
-  if (parentComment.user && parentComment.user !== currentUser) {
-    await addNotification(
-      parentComment.user,
-      `${currentUser} replied to your comment thread`,
-      post.id,
-      "reply"
-    );
-  }
+  post.comments = updatedComments;
 
   threadReplyInput.value = "";
   selectedThreadReplyMediaFile = null;
@@ -1501,17 +1489,43 @@ async function submitThreadReply() {
   if (threadReplyMediaInput) threadReplyMediaInput.value = "";
   updateCommentMediaName(threadReplyMediaName, null);
   refreshCommentColorButtons(threadReplyColorPicker, selectedThreadReplyColor);
-  await loadPostsFromSupabase();
+  renderPosts();
 
-  const updatedPost = posts.find((p) => String(p.id) === String(activeThreadPostId));
-  if (!updatedPost) return;
-
-  const updatedParentComment = updatedPost.comments.find(
+  const updatedParentComment = post.comments.find(
     (comment) => String(comment.id) === String(activeThreadCommentId)
   );
 
   if (updatedParentComment) {
-    renderSingleCommentThread(updatedPost, updatedParentComment);
+    renderSingleCommentThread(post, updatedParentComment);
+  }
+
+  const ok = await updatePostInSupabase(post.id, {
+    comments: updatedComments
+  });
+
+  if (!ok) {
+    post.comments = oldComments;
+    renderPosts();
+
+    const restoredParentComment = post.comments.find(
+      (comment) => String(comment.id) === String(activeThreadCommentId)
+    );
+
+    if (restoredParentComment) {
+      renderSingleCommentThread(post, restoredParentComment);
+    }
+
+    alert("Could not save reply.");
+    return;
+  }
+
+  if (parentComment.user && parentComment.user !== currentUser) {
+    addNotification(
+      parentComment.user,
+      `${currentUser} replied to your comment thread`,
+      post.id,
+      "reply"
+    );
   }
 }
 function closePostView() {
@@ -1570,7 +1584,7 @@ async function submitPostViewComment() {
   }
 
   if (post.username !== currentUser) {
-    await addNotification(
+    addNotification(
       post.username,
       `${currentUser} commented on your post`,
       post.id,
