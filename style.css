@@ -1134,9 +1134,22 @@ body.modal-open {
 .thread-reply-bar {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
   padding: 12px;
   border-top: 1px solid #ececec;
   background: white;
+}
+
+.comment-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.comment-input-row .comment-input {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
 .comment-color-picker {

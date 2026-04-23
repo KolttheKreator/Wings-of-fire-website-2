@@ -94,7 +94,6 @@ const postViewDescription = document.getElementById("postViewDescription");
 const postViewComments = document.getElementById("postViewComments");
 const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
-const postViewCommentColorPicker = document.getElementById("postViewCommentColorPicker");
 const postViewCommentMediaInput = document.getElementById("postViewCommentMediaInput");
 const postViewCommentMediaName = document.getElementById("postViewCommentMediaName");
 const openMessagesBtn = document.getElementById("openMessagesBtn");
@@ -138,7 +137,6 @@ let selectedMediaFile = null;
 let selectedPlaceholderColor = defaultPlaceholderColor;
 let selectedPostViewCommentMediaFile = null;
 let selectedThreadReplyMediaFile = null;
-let selectedPostViewCommentColor = defaultCommentColor;
 let selectedThreadReplyColor = defaultCommentColor;
 let activePostId = null;
 let posts = [];
@@ -1328,10 +1326,8 @@ function openPostView(post) {
 
   if (postViewCommentInput) postViewCommentInput.value = "";
   selectedPostViewCommentMediaFile = null;
-  selectedPostViewCommentColor = defaultCommentColor;
   if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
   updateCommentMediaName(postViewCommentMediaName, null);
-  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
 
   if (postViewModal) postViewModal.classList.remove("hidden");
   document.body.classList.add("modal-open");
@@ -1522,10 +1518,8 @@ function closePostView() {
   activePostId = null;
   if (postViewVideo) postViewVideo.pause();
   selectedPostViewCommentMediaFile = null;
-  selectedPostViewCommentColor = defaultCommentColor;
   if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
   updateCommentMediaName(postViewCommentMediaName, null);
-  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
   if (postViewModal) postViewModal.classList.add("hidden");
   document.body.classList.remove("modal-open");
 }
@@ -1545,7 +1539,7 @@ async function submitPostViewComment() {
     user: currentUser,
     text,
     media,
-    color: getCommentColor(selectedPostViewCommentColor),
+    color: defaultCommentColor,
     created_at: Date.now(),
     replies: []
   };
@@ -1555,10 +1549,8 @@ async function submitPostViewComment() {
 
   postViewCommentInput.value = "";
   selectedPostViewCommentMediaFile = null;
-  selectedPostViewCommentColor = defaultCommentColor;
   if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
   updateCommentMediaName(postViewCommentMediaName, null);
-  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
   renderPosts();
   openPostView(post);
 
@@ -2171,16 +2163,6 @@ if (postViewCommentMediaInput) {
 
     selectedPostViewCommentMediaFile = file;
     updateCommentMediaName(postViewCommentMediaName, file);
-  });
-}
-
-if (postViewCommentColorPicker) {
-  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
-  postViewCommentColorPicker.addEventListener("click", function (e) {
-    const button = e.target.closest(".comment-color-btn");
-    if (!button) return;
-    selectedPostViewCommentColor = getCommentColor(button.dataset.commentColor);
-    refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
   });
 }
 
