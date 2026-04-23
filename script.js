@@ -99,6 +99,11 @@ const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
 const postViewCommentMediaInput = document.getElementById("postViewCommentMediaInput");
 const postViewCommentMediaName = document.getElementById("postViewCommentMediaName");
+const editCommentModal = document.getElementById("editCommentModal");
+const editCommentBackdrop = document.getElementById("editCommentBackdrop");
+const closeEditCommentBtn = document.getElementById("closeEditCommentBtn");
+const editCommentInput = document.getElementById("editCommentInput");
+const saveEditCommentBtn = document.getElementById("saveEditCommentBtn");
 const openMessagesBtn = document.getElementById("openMessagesBtn");
 // Area switching
 const areaSelect = document.getElementById("areaSelect");
@@ -144,6 +149,7 @@ let selectedThreadReplyColor = defaultCommentColor;
 let activePostId = null;
 let posts = [];
 let hasFreshPostsLoaded = false;
+let activeEditCommentTarget = null;
 let editingPostId = null;
 let activeThreadPostId = null;
 let activeThreadCommentId = null;
@@ -404,6 +410,22 @@ function formatTime(createdAt) {
   const days = Math.floor(hours / 24);
   if (days === 1) return "1 day ago";
   return `${days} days ago`;
+}
+
+function formatExactTime(createdAt) {
+  const date = new Date(
+    typeof createdAt === "string" ? createdAt : Number(createdAt)
+  );
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
 }
 
 function highlightMentions(text) {
@@ -780,6 +802,166 @@ function appendCommentMedia(container, media) {
 
   mediaEl.className = "comment-media";
   container.appendChild(mediaEl);
+}
+
+function canManageComment(user) {
+  return !!currentUser && (user === currentUser || isAdmin(currentUser));
+}
+
+function makeThreadActionButton(label, className, onClick) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `thread-comment-action ${className}`;
+  button.textContent = label;
+  button.addEventListener("click", function (e) {
+    e.stopPropagation();
+    onClick();
+  });
+  return button;
+}
+
+function updateCommentTree(post, updater) {
+  const updatedComments = post.comments.map((comment) => {
+    const updatedTopLevel = updater(comment, false, null);
+    if (updatedTopLevel !== comment) return updatedTopLevel;
+
+    const replies = Array.isArray(comment.replies) ? comment.replies : [];
+    let changed = false;
+    const updatedReplies = replies
+      .map((reply) => {
+        const updatedReply = updater(reply, true, comment);
+        if (updatedReply === null) {
+          changed = true;
+          return null;
+        }
+        if (updatedReply !== reply) changed = true;
+        return updatedReply;
+      })
+      .filter(Boolean);
+
+    if (changed) {
+      return {
+        ...comment,
+        replies: updatedReplies
+      };
+    }
+
+    return comment;
+  }).filter(Boolean);
+
+  return updatedComments;
+}
+
+function closeEditCommentModal() {
+  activeEditCommentTarget = null;
+  if (editCommentInput) editCommentInput.value = "";
+  if (editCommentModal) editCommentModal.classList.add("hidden");
+}
+
+function openEditCommentModal(target) {
+  activeEditCommentTarget = target;
+  if (editCommentInput) editCommentInput.value = target.text || "";
+  if (editCommentModal) editCommentModal.classList.remove("hidden");
+}
+
+async function deleteCommentById(postId, commentId, replyId = null) {
+  const post = posts.find((p) => String(p.id) === String(postId));
+  if (!post) return;
+
+  const updatedComments = replyId
+    ? updateCommentTree(post, (item, isReply, parentComment) => {
+        if (
+          isReply &&
+          String(parentComment?.id) === String(commentId) &&
+          String(item.id) === String(replyId)
+        ) {
+          return null;
+        }
+        return item;
+      })
+    : post.comments.filter((comment) => String(comment.id) !== String(commentId));
+
+  const previousComments = structuredClone(post.comments);
+  post.comments = updatedComments;
+  renderPosts();
+
+  if (activePostId === post.id) {
+    openPostView(post);
+  }
+
+  if (activeThreadPostId === post.id && activeThreadCommentId) {
+    const activeComment = post.comments.find(
+      (comment) => String(comment.id) === String(activeThreadCommentId)
+    );
+
+    if (activeComment) {
+      renderSingleCommentThread(post, activeComment);
+    } else {
+      closeThreadPanel();
+    }
+  }
+
+  const ok = await updatePostInSupabase(post.id, { comments: updatedComments });
+  if (!ok) {
+    post.comments = previousComments;
+    renderPosts();
+    if (activePostId === post.id) openPostView(post);
+    return;
+  }
+}
+
+async function saveEditedComment() {
+  if (!activeEditCommentTarget || !editCommentInput) return;
+
+  const nextText = editCommentInput.value.trim();
+  if (!nextText) return;
+
+  const { postId, commentId, replyId } = activeEditCommentTarget;
+  const post = posts.find((p) => String(p.id) === String(postId));
+  if (!post) return;
+
+  const previousComments = structuredClone(post.comments);
+  const updatedComments = updateCommentTree(post, (item, isReply, parentComment) => {
+    if (!replyId && !isReply && String(item.id) === String(commentId)) {
+      return { ...item, text: nextText, edited_at: Date.now() };
+    }
+
+    if (
+      replyId &&
+      isReply &&
+      String(parentComment?.id) === String(commentId) &&
+      String(item.id) === String(replyId)
+    ) {
+      return { ...item, text: nextText, edited_at: Date.now() };
+    }
+
+    return item;
+  });
+
+  post.comments = updatedComments;
+  closeEditCommentModal();
+  renderPosts();
+
+  if (activePostId === post.id) {
+    openPostView(post);
+  }
+
+  if (activeThreadPostId === post.id && activeThreadCommentId) {
+    const activeComment = post.comments.find(
+      (comment) => String(comment.id) === String(activeThreadCommentId)
+    );
+
+    if (activeComment) {
+      renderSingleCommentThread(post, activeComment);
+    }
+  }
+
+  const ok = await updatePostInSupabase(post.id, { comments: updatedComments });
+  if (!ok) {
+    post.comments = previousComments;
+    renderPosts();
+    if (activePostId === post.id) openPostView(post);
+  }
 }
 
 function getPostImageValue(selectedMedia) {
@@ -1373,9 +1555,11 @@ function openPostView(post) {
       card.innerHTML = `
         <div class="comment-thread-top">
           <div class="comment-thread-avatar">${avatarLetter}</div>
-          <div>
+          <div class="comment-thread-head">
+            <div>
             <div class="comment-thread-user">${comment.user}</div>
-            <div class="comment-thread-time">${comment.created_at ? formatTime(comment.created_at) : ""}</div>
+            <div class="comment-thread-time">${comment.created_at ? formatExactTime(comment.created_at) : ""}</div>
+            </div>
           </div>
         </div>
 
@@ -1388,6 +1572,29 @@ function openPostView(post) {
         commentTextEl.style.color = getCommentColor(comment.color);
       }
       appendCommentMedia(commentTextEl, comment.media || "");
+
+      const headEl = card.querySelector(".comment-thread-head");
+      if (headEl && canManageComment(comment.user)) {
+        const actions = document.createElement("div");
+        actions.className = "thread-comment-actions";
+        actions.appendChild(
+          makeThreadActionButton("Edit", "edit", function () {
+            openEditCommentModal({
+              postId: post.id,
+              commentId: comment.id,
+              replyId: null,
+              text: comment.text || ""
+            });
+          })
+        );
+        actions.appendChild(
+          makeThreadActionButton("Delete", "delete", async function () {
+            if (!confirm("Delete this comment?")) return;
+            await deleteCommentById(post.id, comment.id);
+          })
+        );
+        headEl.appendChild(actions);
+      }
 
       card.addEventListener("click", function () {
         openThreadPanel(post.id, comment.id);
@@ -1462,6 +1669,9 @@ function renderSingleCommentThread(post, parentComment) {
   const mainUser = document.createElement("div");
   mainUser.className = "thread-comment-user";
   mainUser.textContent = parentComment.user;
+  const mainHeader = document.createElement("div");
+  mainHeader.className = "thread-comment-header";
+  mainHeader.appendChild(mainUser);
 
   const mainBubble = document.createElement("div");
   mainBubble.className = "thread-comment-bubble";
@@ -1471,9 +1681,31 @@ function renderSingleCommentThread(post, parentComment) {
 
   const mainTime = document.createElement("div");
   mainTime.className = "thread-comment-time";
-  mainTime.textContent = parentComment.created_at ? formatTime(parentComment.created_at) : "";
+  mainTime.textContent = parentComment.created_at ? formatExactTime(parentComment.created_at) : "";
 
-  mainBody.appendChild(mainUser);
+  if (canManageComment(parentComment.user)) {
+    const actions = document.createElement("div");
+    actions.className = "thread-comment-actions";
+    actions.appendChild(
+      makeThreadActionButton("Edit", "edit", function () {
+        openEditCommentModal({
+          postId: post.id,
+          commentId: parentComment.id,
+          replyId: null,
+          text: parentComment.text || ""
+        });
+      })
+    );
+    actions.appendChild(
+      makeThreadActionButton("Delete", "delete", async function () {
+        if (!confirm("Delete this comment?")) return;
+        await deleteCommentById(post.id, parentComment.id);
+      })
+    );
+    mainHeader.appendChild(actions);
+  }
+
+  mainBody.appendChild(mainHeader);
   mainBody.appendChild(mainBubble);
   mainBody.appendChild(mainTime);
 
@@ -1497,6 +1729,9 @@ function renderSingleCommentThread(post, parentComment) {
     const user = document.createElement("div");
     user.className = "thread-comment-user";
     user.textContent = reply.user;
+    const header = document.createElement("div");
+    header.className = "thread-comment-header";
+    header.appendChild(user);
 
     const bubble = document.createElement("div");
     bubble.className = "thread-comment-bubble";
@@ -1506,9 +1741,31 @@ function renderSingleCommentThread(post, parentComment) {
 
     const time = document.createElement("div");
     time.className = "thread-comment-time";
-    time.textContent = reply.created_at ? formatTime(reply.created_at) : "";
+    time.textContent = reply.created_at ? formatExactTime(reply.created_at) : "";
 
-    body.appendChild(user);
+    if (canManageComment(reply.user)) {
+      const actions = document.createElement("div");
+      actions.className = "thread-comment-actions";
+      actions.appendChild(
+        makeThreadActionButton("Edit", "edit", function () {
+          openEditCommentModal({
+            postId: post.id,
+            commentId: parentComment.id,
+            replyId: reply.id,
+            text: reply.text || ""
+          });
+        })
+      );
+      actions.appendChild(
+        makeThreadActionButton("Delete", "delete", async function () {
+          if (!confirm("Delete this reply?")) return;
+          await deleteCommentById(post.id, parentComment.id, reply.id);
+        })
+      );
+      header.appendChild(actions);
+    }
+
+    body.appendChild(header);
     body.appendChild(bubble);
     body.appendChild(time);
 
@@ -2307,6 +2564,27 @@ if (threadReplyInput) {
 
 if (closeThreadBtn) {
   closeThreadBtn.addEventListener("click", closeThreadPanel);
+}
+
+if (closeEditCommentBtn) {
+  closeEditCommentBtn.addEventListener("click", closeEditCommentModal);
+}
+
+if (editCommentBackdrop) {
+  editCommentBackdrop.addEventListener("click", closeEditCommentModal);
+}
+
+if (saveEditCommentBtn) {
+  saveEditCommentBtn.addEventListener("click", saveEditedComment);
+}
+
+if (editCommentInput) {
+  editCommentInput.addEventListener("keydown", function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      saveEditedComment();
+    }
+  });
 }
 
 if (threadBackdrop) {

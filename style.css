@@ -1105,6 +1105,14 @@ body.modal-open {
   max-width: 78%;
 }
 
+.thread-comment-header,
+.comment-thread-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .thread-comment-user {
   font-size: 12px;
   font-weight: 700;
@@ -1129,6 +1137,31 @@ body.modal-open {
   font-size: 11px;
   opacity: 0.6;
   margin-top: 4px;
+}
+
+.thread-comment-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.thread-comment-action {
+  border: none;
+  border-radius: 8px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.thread-comment-action.edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.thread-comment-action.delete {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .thread-reply-bar {
