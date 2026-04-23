@@ -6,6 +6,7 @@ const supabaseKey = "sb_publishable_92kz51al3ZuihOY047N5Gw_zRqOGQ2v";
 const supabase = createClient(supabaseUrl, supabaseKey);
 const postsCacheKey = "dragon_posts_cache_v3";
 const defaultPlaceholderColor = "#bfdbfe";
+const defaultCommentColor = "#1d4ed8";
 
 // =========================
 // DOM
@@ -31,6 +32,7 @@ const threadSubtitle = document.getElementById("threadSubtitle");
 const threadComments = document.getElementById("threadComments");
 const threadReplyInput = document.getElementById("threadReplyInput");
 const threadReplyBtn = document.getElementById("threadReplyBtn");
+const threadReplyColorPicker = document.getElementById("threadReplyColorPicker");
 const threadReplyMediaInput = document.getElementById("threadReplyMediaInput");
 const threadReplyMediaName = document.getElementById("threadReplyMediaName");
 const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
@@ -92,6 +94,7 @@ const postViewDescription = document.getElementById("postViewDescription");
 const postViewComments = document.getElementById("postViewComments");
 const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
+const postViewCommentColorPicker = document.getElementById("postViewCommentColorPicker");
 const postViewCommentMediaInput = document.getElementById("postViewCommentMediaInput");
 const postViewCommentMediaName = document.getElementById("postViewCommentMediaName");
 const openMessagesBtn = document.getElementById("openMessagesBtn");
@@ -135,6 +138,8 @@ let selectedMediaFile = null;
 let selectedPlaceholderColor = defaultPlaceholderColor;
 let selectedPostViewCommentMediaFile = null;
 let selectedThreadReplyMediaFile = null;
+let selectedPostViewCommentColor = defaultCommentColor;
+let selectedThreadReplyColor = defaultCommentColor;
 let activePostId = null;
 let posts = [];
 let editingPostId = null;
@@ -658,6 +663,36 @@ function isAllowedCommentMediaFile(file) {
 function updateCommentMediaName(labelEl, file) {
   if (!labelEl) return;
   labelEl.textContent = file ? file.name : "No media chosen";
+}
+
+function getCommentColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value || "").trim())
+    ? String(value).trim()
+    : defaultCommentColor;
+}
+
+function hexToRgba(hex, alpha) {
+  const color = getCommentColor(hex).replace("#", "");
+  const red = parseInt(color.slice(0, 2), 16);
+  const green = parseInt(color.slice(2, 4), 16);
+  const blue = parseInt(color.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function applyCommentBubbleColor(el, color) {
+  if (!el) return;
+  const safeColor = getCommentColor(color);
+  el.style.color = safeColor;
+  el.style.backgroundColor = hexToRgba(safeColor, 0.12);
+  el.style.border = `1px solid ${hexToRgba(safeColor, 0.24)}`;
+}
+
+function refreshCommentColorButtons(pickerEl, selectedColor) {
+  if (!pickerEl) return;
+  const safeColor = getCommentColor(selectedColor);
+  pickerEl.querySelectorAll(".comment-color-btn").forEach((button) => {
+    button.classList.toggle("active", button.dataset.commentColor === safeColor);
+  });
 }
 
 function appendCommentMedia(container, media) {
@@ -1277,7 +1312,11 @@ function openPostView(post) {
         <div class="comment-thread-meta">${replyCount} repl${replyCount === 1 ? "y" : "ies"} • Open thread</div>
       `;
 
-      appendCommentMedia(card.querySelector(".comment-thread-text"), comment.media || "");
+      const commentTextEl = card.querySelector(".comment-thread-text");
+      if (commentTextEl) {
+        commentTextEl.style.color = getCommentColor(comment.color);
+      }
+      appendCommentMedia(commentTextEl, comment.media || "");
 
       card.addEventListener("click", function () {
         openThreadPanel(post.id, comment.id);
@@ -1289,8 +1328,10 @@ function openPostView(post) {
 
   if (postViewCommentInput) postViewCommentInput.value = "";
   selectedPostViewCommentMediaFile = null;
+  selectedPostViewCommentColor = defaultCommentColor;
   if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
   updateCommentMediaName(postViewCommentMediaName, null);
+  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
 
   if (postViewModal) postViewModal.classList.remove("hidden");
   document.body.classList.add("modal-open");
@@ -1300,8 +1341,10 @@ function closeThreadPanel() {
   activeThreadCommentId = null;
   if (threadReplyInput) threadReplyInput.value = "";
   selectedThreadReplyMediaFile = null;
+  selectedThreadReplyColor = defaultCommentColor;
   if (threadReplyMediaInput) threadReplyMediaInput.value = "";
   updateCommentMediaName(threadReplyMediaName, null);
+  refreshCommentColorButtons(threadReplyColorPicker, selectedThreadReplyColor);
   if (threadOverlay) threadOverlay.classList.add("hidden");
 }
 
@@ -1354,6 +1397,7 @@ function renderSingleCommentThread(post, parentComment) {
   const mainBubble = document.createElement("div");
   mainBubble.className = "thread-comment-bubble";
   mainBubble.innerHTML = highlightMentions(parentComment.text || "");
+  applyCommentBubbleColor(mainBubble, parentComment.color);
   appendCommentMedia(mainBubble, parentComment.media || "");
 
   const mainTime = document.createElement("div");
@@ -1388,6 +1432,7 @@ function renderSingleCommentThread(post, parentComment) {
     const bubble = document.createElement("div");
     bubble.className = "thread-comment-bubble";
     bubble.innerHTML = highlightMentions(reply.text || "");
+    applyCommentBubbleColor(bubble, reply.color);
     appendCommentMedia(bubble, reply.media || "");
 
     const time = document.createElement("div");
@@ -1432,6 +1477,7 @@ async function submitThreadReply() {
           user: currentUser,
           text,
           media,
+          color: getCommentColor(selectedThreadReplyColor),
           created_at: Date.now()
         }
       ]
@@ -1455,8 +1501,10 @@ async function submitThreadReply() {
 
   threadReplyInput.value = "";
   selectedThreadReplyMediaFile = null;
+  selectedThreadReplyColor = defaultCommentColor;
   if (threadReplyMediaInput) threadReplyMediaInput.value = "";
   updateCommentMediaName(threadReplyMediaName, null);
+  refreshCommentColorButtons(threadReplyColorPicker, selectedThreadReplyColor);
   await loadPostsFromSupabase();
 
   const updatedPost = posts.find((p) => String(p.id) === String(activeThreadPostId));
@@ -1474,8 +1522,10 @@ function closePostView() {
   activePostId = null;
   if (postViewVideo) postViewVideo.pause();
   selectedPostViewCommentMediaFile = null;
+  selectedPostViewCommentColor = defaultCommentColor;
   if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
   updateCommentMediaName(postViewCommentMediaName, null);
+  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
   if (postViewModal) postViewModal.classList.add("hidden");
   document.body.classList.remove("modal-open");
 }
@@ -1495,6 +1545,7 @@ async function submitPostViewComment() {
     user: currentUser,
     text,
     media,
+    color: getCommentColor(selectedPostViewCommentColor),
     created_at: Date.now(),
     replies: []
   };
@@ -1504,8 +1555,10 @@ async function submitPostViewComment() {
 
   postViewCommentInput.value = "";
   selectedPostViewCommentMediaFile = null;
+  selectedPostViewCommentColor = defaultCommentColor;
   if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
   updateCommentMediaName(postViewCommentMediaName, null);
+  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
   renderPosts();
   openPostView(post);
 
@@ -2121,6 +2174,16 @@ if (postViewCommentMediaInput) {
   });
 }
 
+if (postViewCommentColorPicker) {
+  refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
+  postViewCommentColorPicker.addEventListener("click", function (e) {
+    const button = e.target.closest(".comment-color-btn");
+    if (!button) return;
+    selectedPostViewCommentColor = getCommentColor(button.dataset.commentColor);
+    refreshCommentColorButtons(postViewCommentColorPicker, selectedPostViewCommentColor);
+  });
+}
+
 if (threadReplyMediaInput) {
   threadReplyMediaInput.addEventListener("change", function () {
     const file = threadReplyMediaInput.files?.[0] || null;
@@ -2135,6 +2198,16 @@ if (threadReplyMediaInput) {
 
     selectedThreadReplyMediaFile = file;
     updateCommentMediaName(threadReplyMediaName, file);
+  });
+}
+
+if (threadReplyColorPicker) {
+  refreshCommentColorButtons(threadReplyColorPicker, selectedThreadReplyColor);
+  threadReplyColorPicker.addEventListener("click", function (e) {
+    const button = e.target.closest(".comment-color-btn");
+    if (!button) return;
+    selectedThreadReplyColor = getCommentColor(button.dataset.commentColor);
+    refreshCommentColorButtons(threadReplyColorPicker, selectedThreadReplyColor);
   });
 }
 

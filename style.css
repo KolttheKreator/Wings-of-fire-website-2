@@ -1112,8 +1112,8 @@ body.modal-open {
 }
 
 .thread-comment-bubble {
-  background: #2563eb;
-  color: white;
+  background: #eff6ff;
+  color: #1d4ed8;
   border-radius: 12px;
   padding: 10px 12px;
   font-size: 14px;
@@ -1122,7 +1122,7 @@ body.modal-open {
 }
 
 .thread-comment.mine .thread-comment-bubble {
-  background: #db2777;
+  background: #fdf2f8;
 }
 
 .thread-comment-time {
@@ -1137,6 +1137,35 @@ body.modal-open {
   padding: 12px;
   border-top: 1px solid #ececec;
   background: white;
+}
+
+.comment-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.comment-color-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.12);
+}
+
+.comment-color-btn[data-comment-color="#1d4ed8"] { background: #1d4ed8; }
+.comment-color-btn[data-comment-color="#dc2626"] { background: #dc2626; }
+.comment-color-btn[data-comment-color="#059669"] { background: #059669; }
+.comment-color-btn[data-comment-color="#db2777"] { background: #db2777; }
+.comment-color-btn[data-comment-color="#7c3aed"] { background: #7c3aed; }
+.comment-color-btn[data-comment-color="#ea580c"] { background: #ea580c; }
+
+.comment-color-btn.active {
+  border-color: #111827;
 }
 
 .comment-media-btn {
