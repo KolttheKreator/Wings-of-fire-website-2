@@ -5,6 +5,9 @@ const supabaseUrl = "https://cvjkxmgfiaoetepwfyqi.supabase.co";
 const supabaseKey = "sb_publishable_92kz51al3ZuihOY047N5Gw_zRqOGQ2v";
 const supabase = createClient(supabaseUrl, supabaseKey);
 const postsCacheKey = "dragon_posts_cache_v3";
+const postsRichCacheDbName = "dragon-rich-cache";
+const postsRichCacheStoreName = "app_cache";
+const postsRichCacheKey = "posts_snapshot_v1";
 const defaultPlaceholderColor = "#bfdbfe";
 const defaultCommentColor = "#1d4ed8";
 
@@ -140,6 +143,7 @@ let selectedThreadReplyMediaFile = null;
 let selectedThreadReplyColor = defaultCommentColor;
 let activePostId = null;
 let posts = [];
+let hasFreshPostsLoaded = false;
 let editingPostId = null;
 let activeThreadPostId = null;
 let activeThreadCommentId = null;
@@ -450,6 +454,72 @@ function getCacheablePostMedia(image) {
   if (image.startsWith("data:")) return "";
   if (isOldGeneratedPostImage(image)) return "";
   return image;
+}
+
+function openRichPostsCache() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(postsRichCacheDbName, 1);
+
+    request.onupgradeneeded = function () {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(postsRichCacheStoreName)) {
+        db.createObjectStore(postsRichCacheStoreName);
+      }
+    };
+
+    request.onsuccess = function () {
+      resolve(request.result);
+    };
+
+    request.onerror = function () {
+      reject(request.error);
+    };
+  });
+}
+
+async function readRichPostsCache() {
+  try {
+    const db = await openRichPostsCache();
+
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(postsRichCacheStoreName, "readonly");
+      const store = tx.objectStore(postsRichCacheStoreName);
+      const request = store.get(postsRichCacheKey);
+
+      request.onsuccess = function () {
+        resolve(Array.isArray(request.result) ? request.result : []);
+      };
+
+      request.onerror = function () {
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.warn("Could not read rich posts cache:", error);
+    return [];
+  }
+}
+
+async function writeRichPostsCache(postsToCache) {
+  try {
+    const db = await openRichPostsCache();
+
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(postsRichCacheStoreName, "readwrite");
+      const store = tx.objectStore(postsRichCacheStoreName);
+      const request = store.put(postsToCache, postsRichCacheKey);
+
+      request.onsuccess = function () {
+        resolve();
+      };
+
+      request.onerror = function () {
+        reject(request.error);
+      };
+    });
+  } catch (error) {
+    console.warn("Could not write rich posts cache:", error);
+  }
 }
 
 function refreshPlaceholderColorButtons() {
@@ -1116,6 +1186,7 @@ async function loadPostsFromSupabase() {
   pinned: !!post.pinned,
   createdAt: Number(post.created_at) || Date.now()
 }));
+  hasFreshPostsLoaded = true;
 
   try {
   const lightweightPosts = posts.slice(0, 20).map((p) => ({
@@ -1136,6 +1207,8 @@ async function loadPostsFromSupabase() {
 } catch (e) {
   console.warn("Storage full, skipping cache");
 }
+
+  writeRichPostsCache(posts.slice(0, 20));
 
   renderPosts();
 }
@@ -2526,6 +2599,7 @@ async function startApp() {
 
   loadLocalData();
   updateAreaVisibility();
+  hasFreshPostsLoaded = false;
 
   // Instant load from the last lightweight post snapshot.
   localStorage.removeItem("dragon_posts_cache");
@@ -2541,6 +2615,15 @@ async function startApp() {
       localStorage.removeItem(postsCacheKey);
     }
   }
+
+  readRichPostsCache().then((richCachedPosts) => {
+    if (hasFreshPostsLoaded || !Array.isArray(richCachedPosts) || richCachedPosts.length === 0) {
+      return;
+    }
+
+    posts = richCachedPosts;
+    renderPosts();
+  });
 
   await Promise.all([
     loadProfilesFromSupabase().then(() => {
