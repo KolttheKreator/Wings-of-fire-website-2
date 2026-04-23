@@ -1415,6 +1415,10 @@ async function submitThreadReply() {
 
   const post = posts.find((p) => String(p.id) === String(activeThreadPostId));
   if (!post) return;
+  const parentComment = post.comments.find(
+    (comment) => String(comment.id) === String(activeThreadCommentId)
+  );
+  if (!parentComment) return;
 
   const updatedComments = post.comments.map((comment) => {
     if (String(comment.id) !== String(activeThreadCommentId)) return comment;
@@ -1439,6 +1443,15 @@ async function submitThreadReply() {
   });
 
   if (!ok) return;
+
+  if (parentComment.user && parentComment.user !== currentUser) {
+    await addNotification(
+      parentComment.user,
+      `${currentUser} replied to your comment thread`,
+      post.id,
+      "reply"
+    );
+  }
 
   threadReplyInput.value = "";
   selectedThreadReplyMediaFile = null;
