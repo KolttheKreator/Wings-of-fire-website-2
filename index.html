@@ -367,8 +367,11 @@
             class="comment-input"
             placeholder="Start a new comment thread..."
           />
+          <label for="postViewCommentMediaInput" class="comment-media-btn" aria-label="Add media">🖼</label>
+          <input id="postViewCommentMediaInput" type="file" accept="image/*,video/*" hidden />
           <button id="postViewCommentBtn" type="button" class="comment-submit-btn">Send</button>
         </div>
+        <div id="postViewCommentMediaName" class="comment-media-name">No media chosen</div>
       </div>
     </div>
   </div>
@@ -412,8 +415,11 @@
         type="text"
         placeholder="Reply to comment"
       />
+      <label for="threadReplyMediaInput" class="comment-media-btn" aria-label="Add media">🖼</label>
+      <input id="threadReplyMediaInput" type="file" accept="image/*,video/*" hidden />
       <button id="threadReplyBtn">➤</button>
     </div>
+    <div id="threadReplyMediaName" class="thread-reply-media-name">No media chosen</div>
   </aside>
 </div>
 

@@ -31,6 +31,8 @@ const threadSubtitle = document.getElementById("threadSubtitle");
 const threadComments = document.getElementById("threadComments");
 const threadReplyInput = document.getElementById("threadReplyInput");
 const threadReplyBtn = document.getElementById("threadReplyBtn");
+const threadReplyMediaInput = document.getElementById("threadReplyMediaInput");
+const threadReplyMediaName = document.getElementById("threadReplyMediaName");
 const threadPostMiniAvatar = document.getElementById("threadPostMiniAvatar");
 const notifBtn = document.getElementById("notifBtn");
 const notifModal = document.getElementById("notifModal");
@@ -90,6 +92,8 @@ const postViewDescription = document.getElementById("postViewDescription");
 const postViewComments = document.getElementById("postViewComments");
 const postViewCommentInput = document.getElementById("postViewCommentInput");
 const postViewCommentBtn = document.getElementById("postViewCommentBtn");
+const postViewCommentMediaInput = document.getElementById("postViewCommentMediaInput");
+const postViewCommentMediaName = document.getElementById("postViewCommentMediaName");
 const openMessagesBtn = document.getElementById("openMessagesBtn");
 // Area switching
 const areaSelect = document.getElementById("areaSelect");
@@ -129,6 +133,8 @@ let notifications = [];
 let selectedImageData = "";
 let selectedMediaFile = null;
 let selectedPlaceholderColor = defaultPlaceholderColor;
+let selectedPostViewCommentMediaFile = null;
+let selectedThreadReplyMediaFile = null;
 let activePostId = null;
 let posts = [];
 let editingPostId = null;
@@ -635,6 +641,42 @@ async function getSelectedPostMedia() {
 
   if (selectedImageData) return selectedImageData;
   return await readFileAsDataUrl(selectedMediaFile);
+}
+
+async function getCommentMediaFromFile(file) {
+  if (!file) return "";
+  if (file.type.startsWith("video/")) {
+    return await uploadPostVideo(file);
+  }
+  return await readFileAsDataUrl(file);
+}
+
+function isAllowedCommentMediaFile(file) {
+  return !!file && (file.type.startsWith("image/") || file.type.startsWith("video/"));
+}
+
+function updateCommentMediaName(labelEl, file) {
+  if (!labelEl) return;
+  labelEl.textContent = file ? file.name : "No media chosen";
+}
+
+function appendCommentMedia(container, media) {
+  if (!container || !media) return;
+
+  let mediaEl;
+  if (isVideoSource(media)) {
+    mediaEl = document.createElement("video");
+    mediaEl.controls = true;
+    mediaEl.playsInline = true;
+    mediaEl.src = media;
+  } else {
+    mediaEl = document.createElement("img");
+    mediaEl.src = media;
+    mediaEl.alt = "Comment media";
+  }
+
+  mediaEl.className = "comment-media";
+  container.appendChild(mediaEl);
 }
 
 function getPostImageValue(selectedMedia) {
@@ -1235,6 +1277,8 @@ function openPostView(post) {
         <div class="comment-thread-meta">${replyCount} repl${replyCount === 1 ? "y" : "ies"} • Open thread</div>
       `;
 
+      appendCommentMedia(card.querySelector(".comment-thread-text"), comment.media || "");
+
       card.addEventListener("click", function () {
         openThreadPanel(post.id, comment.id);
       });
@@ -1244,6 +1288,9 @@ function openPostView(post) {
   }
 
   if (postViewCommentInput) postViewCommentInput.value = "";
+  selectedPostViewCommentMediaFile = null;
+  if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
+  updateCommentMediaName(postViewCommentMediaName, null);
 
   if (postViewModal) postViewModal.classList.remove("hidden");
   document.body.classList.add("modal-open");
@@ -1252,6 +1299,9 @@ function closeThreadPanel() {
   activeThreadPostId = null;
   activeThreadCommentId = null;
   if (threadReplyInput) threadReplyInput.value = "";
+  selectedThreadReplyMediaFile = null;
+  if (threadReplyMediaInput) threadReplyMediaInput.value = "";
+  updateCommentMediaName(threadReplyMediaName, null);
   if (threadOverlay) threadOverlay.classList.add("hidden");
 }
 
@@ -1304,6 +1354,7 @@ function renderSingleCommentThread(post, parentComment) {
   const mainBubble = document.createElement("div");
   mainBubble.className = "thread-comment-bubble";
   mainBubble.innerHTML = highlightMentions(parentComment.text || "");
+  appendCommentMedia(mainBubble, parentComment.media || "");
 
   const mainTime = document.createElement("div");
   mainTime.className = "thread-comment-time";
@@ -1337,6 +1388,7 @@ function renderSingleCommentThread(post, parentComment) {
     const bubble = document.createElement("div");
     bubble.className = "thread-comment-bubble";
     bubble.innerHTML = highlightMentions(reply.text || "");
+    appendCommentMedia(bubble, reply.media || "");
 
     const time = document.createElement("div");
     time.className = "thread-comment-time";
@@ -1358,7 +1410,8 @@ async function submitThreadReply() {
   if (!activeThreadPostId || !activeThreadCommentId || !currentUser || !threadReplyInput) return;
 
   const text = threadReplyInput.value.trim();
-  if (!text) return;
+  const media = await getCommentMediaFromFile(selectedThreadReplyMediaFile);
+  if (!text && !media) return;
 
   const post = posts.find((p) => String(p.id) === String(activeThreadPostId));
   if (!post) return;
@@ -1374,6 +1427,7 @@ async function submitThreadReply() {
           id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
           user: currentUser,
           text,
+          media,
           created_at: Date.now()
         }
       ]
@@ -1387,6 +1441,9 @@ async function submitThreadReply() {
   if (!ok) return;
 
   threadReplyInput.value = "";
+  selectedThreadReplyMediaFile = null;
+  if (threadReplyMediaInput) threadReplyMediaInput.value = "";
+  updateCommentMediaName(threadReplyMediaName, null);
   await loadPostsFromSupabase();
 
   const updatedPost = posts.find((p) => String(p.id) === String(activeThreadPostId));
@@ -1403,6 +1460,9 @@ async function submitThreadReply() {
 function closePostView() {
   activePostId = null;
   if (postViewVideo) postViewVideo.pause();
+  selectedPostViewCommentMediaFile = null;
+  if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
+  updateCommentMediaName(postViewCommentMediaName, null);
   if (postViewModal) postViewModal.classList.add("hidden");
   document.body.classList.remove("modal-open");
 }
@@ -1411,7 +1471,8 @@ async function submitPostViewComment() {
   if (!activePostId || !currentUser || !postViewCommentInput) return;
 
   const text = postViewCommentInput.value.trim();
-  if (!text) return;
+  const media = await getCommentMediaFromFile(selectedPostViewCommentMediaFile);
+  if (!text && !media) return;
 
   const post = posts.find((p) => String(p.id) === String(activePostId));
   if (!post) return;
@@ -1420,6 +1481,7 @@ async function submitPostViewComment() {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     user: currentUser,
     text,
+    media,
     created_at: Date.now(),
     replies: []
   };
@@ -1428,6 +1490,9 @@ async function submitPostViewComment() {
   post.comments = [...post.comments, newComment];
 
   postViewCommentInput.value = "";
+  selectedPostViewCommentMediaFile = null;
+  if (postViewCommentMediaInput) postViewCommentMediaInput.value = "";
+  updateCommentMediaName(postViewCommentMediaName, null);
   renderPosts();
   openPostView(post);
 
@@ -2023,6 +2088,40 @@ if (fileInput) {
       selectedImageData = event.target?.result || "";
     };
     reader.readAsDataURL(file);
+  });
+}
+
+if (postViewCommentMediaInput) {
+  postViewCommentMediaInput.addEventListener("change", function () {
+    const file = postViewCommentMediaInput.files?.[0] || null;
+
+    if (file && !isAllowedCommentMediaFile(file)) {
+      selectedPostViewCommentMediaFile = null;
+      postViewCommentMediaInput.value = "";
+      updateCommentMediaName(postViewCommentMediaName, null);
+      alert("Please choose an image or video file.");
+      return;
+    }
+
+    selectedPostViewCommentMediaFile = file;
+    updateCommentMediaName(postViewCommentMediaName, file);
+  });
+}
+
+if (threadReplyMediaInput) {
+  threadReplyMediaInput.addEventListener("change", function () {
+    const file = threadReplyMediaInput.files?.[0] || null;
+
+    if (file && !isAllowedCommentMediaFile(file)) {
+      selectedThreadReplyMediaFile = null;
+      threadReplyMediaInput.value = "";
+      updateCommentMediaName(threadReplyMediaName, null);
+      alert("Please choose an image or video file.");
+      return;
+    }
+
+    selectedThreadReplyMediaFile = file;
+    updateCommentMediaName(threadReplyMediaName, file);
   });
 }
 
