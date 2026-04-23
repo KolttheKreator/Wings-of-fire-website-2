@@ -238,6 +238,52 @@ body {
   flex-wrap: wrap;
 }
 
+.placeholder-color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.placeholder-color-label {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.placeholder-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.placeholder-color-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.10);
+}
+
+.placeholder-color-btn[data-placeholder-color="#bfdbfe"] { background: #bfdbfe; }
+.placeholder-color-btn[data-placeholder-color="#fecdd3"] { background: #fecdd3; }
+.placeholder-color-btn[data-placeholder-color="#fecaca"] { background: #fecaca; }
+.placeholder-color-btn[data-placeholder-color="#bbf7d0"] { background: #bbf7d0; }
+.placeholder-color-btn[data-placeholder-color="#ddd6fe"] { background: #ddd6fe; }
+.placeholder-color-btn[data-placeholder-color="#fde68a"] { background: #fde68a; }
+
+.placeholder-color-btn.active {
+  border-color: #1f2937;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(31, 41, 55, 0.10);
+}
+
+.placeholder-color-btn:hover {
+  transform: translateY(-1px);
+}
+
 .file-btn {
   display: inline-block;
   background: #f3f4f6;

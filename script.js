@@ -5,6 +5,7 @@ const supabaseUrl = "https://cvjkxmgfiaoetepwfyqi.supabase.co";
 const supabaseKey = "sb_publishable_92kz51al3ZuihOY047N5Gw_zRqOGQ2v";
 const supabase = createClient(supabaseUrl, supabaseKey);
 const postsCacheKey = "dragon_posts_cache_v3";
+const defaultPlaceholderColor = "#bfdbfe";
 
 // =========================
 // DOM
@@ -16,6 +17,8 @@ const postDescription = document.getElementById("postDescription");
 const template = document.getElementById("postTemplate");
 const fileInput = document.getElementById("fileInput");
 const fileName = document.getElementById("fileName");
+const placeholderColorPicker = document.getElementById("placeholderColorPicker");
+const placeholderColorButtons = Array.from(document.querySelectorAll(".placeholder-color-btn"));
 const sortSelect = document.getElementById("sortSelect");
 const notifCount = document.getElementById("notifCount");
 const mentionList = document.getElementById("mentionList");
@@ -125,6 +128,7 @@ let currentUser = null;
 let notifications = [];
 let selectedImageData = "";
 let selectedMediaFile = null;
+let selectedPlaceholderColor = defaultPlaceholderColor;
 let activePostId = null;
 let posts = [];
 let editingPostId = null;
@@ -409,17 +413,43 @@ function isOldGeneratedPostImage(src) {
   }
 }
 
+function isPlaceholderToken(src) {
+  return typeof src === "string" && src.startsWith("placeholder:");
+}
+
+function getPlaceholderColorFromImage(image) {
+  if (!isPlaceholderToken(image)) return defaultPlaceholderColor;
+
+  const color = image.slice("placeholder:".length).trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : defaultPlaceholderColor;
+}
+
+function makePlaceholderImageValue(color) {
+  return `placeholder:${getPlaceholderColorFromImage(`placeholder:${color}`)}`;
+}
+
 function hasPostMedia(post) {
   return typeof post?.image === "string" &&
     post.image.trim() !== "" &&
-    !isOldGeneratedPostImage(post.image);
+    !isOldGeneratedPostImage(post.image) &&
+    !isPlaceholderToken(post.image);
 }
 
 function getCacheablePostMedia(image) {
   if (typeof image !== "string") return "";
+  if (isPlaceholderToken(image)) return image;
   if (image.startsWith("data:")) return "";
   if (isOldGeneratedPostImage(image)) return "";
   return image;
+}
+
+function refreshPlaceholderColorButtons() {
+  placeholderColorButtons.forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.placeholderColor === selectedPlaceholderColor
+    );
+  });
 }
 
 function getSortedPosts() {
@@ -606,6 +636,11 @@ async function getSelectedPostMedia() {
   if (selectedImageData) return selectedImageData;
   return await readFileAsDataUrl(selectedMediaFile);
 }
+
+function getPostImageValue(selectedMedia) {
+  return selectedMedia || makePlaceholderImageValue(selectedPlaceholderColor);
+}
+
 async function loadNotificationsFromSupabase() {
   if (!currentUser) {
     notifications = [];
@@ -1136,10 +1171,12 @@ function openPostView(post) {
 
   if (postViewImage && postViewVideo && postViewPlaceholder) {
     const hasMedia = hasPostMedia(post);
+    const placeholderColor = getPlaceholderColorFromImage(post.image);
 
     postViewImage.style.display = "none";
     postViewVideo.style.display = "none";
     postViewPlaceholder.style.display = "none";
+    postViewPlaceholder.style.backgroundColor = placeholderColor;
     postViewVideo.pause();
     postViewVideo.removeAttribute("src");
     postViewVideo.load();
@@ -1477,10 +1514,12 @@ function renderPosts() {
 
     if (cardImage && cardVideo && cardPlaceholder) {
       const hasMedia = hasPostMedia(post);
+      const placeholderColor = getPlaceholderColorFromImage(post.image);
 
       cardImage.style.display = "none";
       cardVideo.style.display = "none";
       cardPlaceholder.style.display = "none";
+      cardPlaceholder.style.backgroundColor = placeholderColor;
       cardVideo.removeAttribute("src");
       cardImage.removeAttribute("src");
 
@@ -1734,10 +1773,12 @@ function openEditPostModal(post) {
   if (postText) postText.value = post.text || "";
   if (postDescription) postDescription.value = post.description || "";
 
-  selectedImageData = post.image || "";
+  selectedImageData = hasPostMedia(post) ? post.image || "" : "";
   selectedMediaFile = null;
+  selectedPlaceholderColor = getPlaceholderColorFromImage(post.image);
+  refreshPlaceholderColorButtons();
   if (fileName) {
-    fileName.textContent = post.image
+    fileName.textContent = hasPostMedia(post)
       ? `Current ${isVideoSource(post.image) ? "video" : "image"} selected`
       : "No file chosen";
   }
@@ -1985,6 +2026,18 @@ if (fileInput) {
   });
 }
 
+if (placeholderColorPicker) {
+  refreshPlaceholderColorButtons();
+
+  placeholderColorPicker.addEventListener("click", function (e) {
+    const button = e.target.closest(".placeholder-color-btn");
+    if (!button) return;
+
+    selectedPlaceholderColor = button.dataset.placeholderColor || defaultPlaceholderColor;
+    refreshPlaceholderColorButtons();
+  });
+}
+
 if (threadReplyBtn) {
   threadReplyBtn.addEventListener("click", submitThreadReply);
 }
@@ -2113,12 +2166,13 @@ if (postBtn) {
     try {
       const selectedMedia = await getSelectedPostMedia();
       if (selectedMediaFile && !selectedMedia) return;
+      const imageValue = getPostImageValue(selectedMedia);
 
       if (editingPostId) {
         const ok = await updatePostInSupabase(editingPostId, {
           text,
           description,
-          image: selectedMedia || ""
+          image: imageValue
         });
 
         if (!ok) return;
@@ -2131,12 +2185,14 @@ if (postBtn) {
         if (fileName) fileName.textContent = "No file chosen";
         selectedImageData = "";
         selectedMediaFile = null;
+        selectedPlaceholderColor = defaultPlaceholderColor;
+        refreshPlaceholderColorButtons();
 
         await loadPostsFromSupabase();
         return;
       }
 
-      const img = selectedMedia || "";
+      const img = imageValue;
 
       const newPost = {
         username: currentUser,
@@ -2175,6 +2231,8 @@ if (postBtn) {
       if (fileName) fileName.textContent = "No file chosen";
       selectedImageData = "";
       selectedMediaFile = null;
+      selectedPlaceholderColor = defaultPlaceholderColor;
+      refreshPlaceholderColorButtons();
       if (mentionList) mentionList.classList.add("hidden");
 
       await loadPostsFromSupabase();
