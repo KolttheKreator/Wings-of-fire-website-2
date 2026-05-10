@@ -509,6 +509,26 @@ function hasPostMedia(post) {
     !isPlaceholderToken(post.image);
 }
 
+function getPostImageFromPocketBaseRecord(record) {
+  if (record.image_url) return record.image_url;
+
+  const image = Array.isArray(record.image) ? record.image[0] : record.image;
+  if (!image) return "";
+
+  if (
+    typeof image === "string" &&
+    (image.startsWith("http") || image.startsWith("data:") || isPlaceholderToken(image))
+  ) {
+    return image;
+  }
+
+  try {
+    return pb.files.getURL(record, image);
+  } catch (error) {
+    return "";
+  }
+}
+
 function getCacheablePostMedia(image) {
   if (typeof image !== "string") return "";
   if (isPlaceholderToken(image)) return image;
@@ -1322,7 +1342,7 @@ async function loadPostsFromSupabase() {
       userLetter: post.user_letter || "",
       text: post.text,
       description: post.description || "",
-      image: post.image || "",
+      image: getPostImageFromPocketBaseRecord(post),
       likes: post.likes || 0,
       likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
       comments: Array.isArray(post.comments) ? post.comments : [],
@@ -1355,6 +1375,7 @@ async function addPostToSupabase(newPost) {
     user_letter: newPost.userLetter,
     text: newPost.text,
     description: newPost.description,
+    image_url: newPost.image,
     likes: newPost.likes,
     liked_by: newPost.likedBy || [],
     comments: newPost.comments,

@@ -95,6 +95,7 @@ def normalize_post(row):
         "user_letter": row.get("user_letter") or "",
         "text": row.get("text") or "",
         "description": row.get("description") or "",
+        "image_url": row.get("image") or "",
         "likes": parse_int(row.get("likes")),
         "liked_by": parse_json_array(row.get("liked_by")),
         "comments": [comment for comment in comments if comment],
@@ -105,8 +106,8 @@ def normalize_post(row):
     return payload
 
 
-def load_existing_keys(pb_url):
-    keys = set()
+def load_existing_posts(pb_url):
+    posts = {}
     page = 1
 
     while True:
@@ -122,13 +123,13 @@ def load_existing_keys(pb_url):
         items = data.get("items", []) if isinstance(data, dict) else []
 
         for item in items:
-            keys.add(make_dedupe_key(item))
+            posts[make_dedupe_key(item)] = item
 
         if page >= int(data.get("totalPages", 0) or 0):
             break
         page += 1
 
-    return keys
+    return posts
 
 
 def make_dedupe_key(post):
@@ -139,11 +140,12 @@ def make_dedupe_key(post):
     )
 
 
-def import_posts(csv_path, pb_url, dry_run=False):
+def import_posts(csv_path, pb_url, dry_run=False, update_images=False):
     csv.field_size_limit(sys.maxsize)
-    existing_keys = load_existing_keys(pb_url)
+    existing_posts = load_existing_posts(pb_url)
     imported = 0
     skipped = 0
+    updated = 0
     failed = 0
 
     with open(csv_path, newline="", encoding="utf-8") as csv_file:
@@ -153,7 +155,21 @@ def import_posts(csv_path, pb_url, dry_run=False):
             payload = normalize_post(row)
             key = make_dedupe_key(payload)
 
-            if key in existing_keys:
+            if key in existing_posts:
+                if update_images and payload.get("image_url"):
+                    if dry_run:
+                        updated += 1
+                    else:
+                        try:
+                            request_json(
+                                "PATCH",
+                                f"{pb_url}/api/collections/posts/records/{existing_posts[key]['id']}",
+                                {"image_url": payload["image_url"]},
+                            )
+                            updated += 1
+                        except RuntimeError as error:
+                            failed += 1
+                            print(f"Failed image update row {row.get('id')}: {error}", file=sys.stderr)
                 skipped += 1
                 continue
 
@@ -167,7 +183,7 @@ def import_posts(csv_path, pb_url, dry_run=False):
                     f"{pb_url}/api/collections/posts/records",
                     payload,
                 )
-                existing_keys.add(key)
+                existing_posts[key] = payload
                 imported += 1
             except RuntimeError as error:
                 failed += 1
@@ -175,6 +191,7 @@ def import_posts(csv_path, pb_url, dry_run=False):
 
     print(f"Imported: {imported}")
     print(f"Skipped duplicates: {skipped}")
+    print(f"Updated images: {updated}")
     print(f"Failed: {failed}")
 
 
@@ -183,9 +200,10 @@ def main():
     parser.add_argument("csv_path", nargs="?", default=DEFAULT_CSV_PATH)
     parser.add_argument("--pb-url", default=DEFAULT_PB_URL)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--update-images", action="store_true")
     args = parser.parse_args()
 
-    import_posts(args.csv_path, args.pb_url.rstrip("/"), args.dry_run)
+    import_posts(args.csv_path, args.pb_url.rstrip("/"), args.dry_run, args.update_images)
 
 
 if __name__ == "__main__":
