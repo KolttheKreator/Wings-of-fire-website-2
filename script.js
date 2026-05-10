@@ -692,7 +692,7 @@ function resizeProfileImageToDataUrl(file) {
 
       img.onerror = () => resolve(null);
       img.onload = () => {
-        const maxSize = 360;
+        const maxSize = 96;
         const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
         const width = Math.max(1, Math.round(img.width * scale));
         const height = Math.max(1, Math.round(img.height * scale));
@@ -707,7 +707,7 @@ function resizeProfileImageToDataUrl(file) {
         canvas.width = width;
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
+        resolve(canvas.toDataURL("image/jpeg", 0.65));
       };
 
       img.src = reader.result;
@@ -1502,6 +1502,12 @@ function getProfileImageFromPocketBaseRecord(record) {
   }
 }
 
+function canSaveProfileImageAsText(imageSrc) {
+  return typeof imageSrc === "string" &&
+    imageSrc.trim() !== "" &&
+    (!imageSrc.startsWith("data:") || imageSrc.length <= 4500);
+}
+
 async function findProfileRecord(username) {
   try {
     return await pb.collection("profiles").getFirstListItem(
@@ -1523,7 +1529,7 @@ async function saveProfileToSupabase(username) {
     bio: profile.bio || "No bio yet.",
     likes: profile.likes || "Cool stuff",
     tag: profile.tag || "Dragon",
-    image_url: profile.image || ""
+    image_url: canSaveProfileImageAsText(profile.image) ? profile.image : ""
   };
 
   try {
@@ -2742,12 +2748,24 @@ if (profilePicInput) {
       return;
     }
 
+    if (imageData.length > 4500) {
+      if (profilePicName) {
+        profilePicName.textContent = "No profile pic chosen";
+      }
+      alert("That image is still too large for PocketBase. Try a smaller square picture.");
+      return;
+    }
+
     setProfileImage(imageData);
     saveLocalData();
-    saveProfileToSupabase(currentUser);
+    const ok = await saveProfileToSupabase(currentUser);
 
     if (profilePicName) {
-      profilePicName.textContent = file.name;
+      profilePicName.textContent = ok ? file.name : "Profile pic saved locally";
+    }
+
+    if (!ok) {
+      alert("Profile picture saved on this device, but PocketBase did not sync it.");
     }
   });
 }
