@@ -1432,11 +1432,12 @@ function openPostView(post) {
         <div class="comment-thread-top">
           <div class="comment-thread-avatar">${avatarLetter}</div>
           <div>
-          <div class="comment-thread-head">
-            <div>
-            <div class="comment-thread-user">${comment.user}</div>
-            <div class="comment-thread-time">${comment.created_at ? formatTime(comment.created_at) : ""}</div>
-            <div class="comment-thread-time">${comment.created_at ? formatExactTime(comment.created_at) : ""}</div>
+            <div class="comment-thread-head">
+              <div>
+                <div class="comment-thread-user">${comment.user}</div>
+                <div class="comment-thread-time">${comment.created_at ? formatTime(comment.created_at) : ""}</div>
+                <div class="comment-thread-time">${comment.created_at ? formatExactTime(comment.created_at) : ""}</div>
+              </div>
             </div>
           </div>
         </div>

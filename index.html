@@ -267,6 +267,39 @@
       </div>
     </div>
   </div>
+
+  <div id="threadOverlay" class="thread-overlay hidden">
+    <div id="threadBackdrop" class="bio-backdrop"></div>
+
+    <aside id="threadPanel" class="thread-panel">
+      <div class="thread-panel-header">
+        <div class="user-row">
+          <div id="threadPostMiniAvatar" class="thread-comment-avatar">K</div>
+          <div>
+            <h3 id="threadTitle">Comment Thread</h3>
+            <p id="threadSubtitle" class="bio-role">0 replies</p>
+          </div>
+        </div>
+
+        <button id="closeThreadBtn" class="close-bio-btn" type="button">✖</button>
+      </div>
+
+      <div id="threadComments" class="thread-comments"></div>
+
+      <div class="thread-reply-box">
+        <div class="comment-input-row">
+          <input
+            id="threadReplyInput"
+            class="comment-input"
+            type="text"
+            placeholder="Write a reply..."
+          />
+          <input id="threadReplyColorPicker" type="color" value="#1d4ed8" title="Reply color" />
+          <button id="threadReplyBtn" class="comment-submit-btn" type="button">Send</button>
+        </div>
+      </div>
+    </aside>
+  </div>
 <div id="notifModal" class="notif-dropdown hidden">
   <div class="notif-dropdown-card">
     <div class="notif-dropdown-header">
