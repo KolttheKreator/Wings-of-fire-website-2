@@ -1290,7 +1290,7 @@ async function loadPostsFromSupabase() {
       sort: "-created_at"
     });
 
-    posts = (data || []).map((post) => ({
+    const remotePosts = (data || []).map((post) => ({
       id: post.id,
       username: post.username,
       userLetter: post.user_letter || "",
@@ -1304,9 +1304,20 @@ async function loadPostsFromSupabase() {
       createdAt: Number(post.created_at) || Date.now()
     }));
 
+    if (remotePosts.length === 0 && posts.length > 0) {
+      console.warn("PocketBase returned no posts, keeping cached posts visible.");
+      renderPosts();
+      return;
+    }
+
+    posts = remotePosts;
+
     renderPosts();
     hasFreshPostsLoaded = true;
-    savePostsCache();
+
+    if (posts.length > 0) {
+      savePostsCache();
+    }
 
   } catch (error) {
     console.error("Could not load posts:", error);
