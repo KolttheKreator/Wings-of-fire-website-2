@@ -479,22 +479,8 @@ body {
 }
 
 .comments-panel {
-  position: absolute;
-  top: 0;
-  left: calc(100% + 18px);
-
-  width: 360px;
-  max-height: 520px;
-
-  background: white;
-  border-radius: 20px;
-  padding: 16px;
-
-  box-shadow: 0 18px 40px rgba(0,0,0,0.18);
-
-  overflow-y: auto;
-
-  z-index: 100;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 12px;
 }
 
 .comments-list {
@@ -713,29 +699,47 @@ body {
 /* ===== POST VIEW FIXES ===== */
 
 .post-view-card {
-  width: min(720px, calc(100vw - 32px));
+  width: min(1050px, calc(100vw - 32px));
   max-height: 90vh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-sizing: border-box;
+  overflow: hidden;
   padding: 0;
 }
 
 .post-view-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1.4fr 0.9fr;
+  gap: 18px;
+  padding: 18px;
 }
 
-.post-view-image {
+.post-view-image,
+#postViewVideo,
+#postViewPlaceholder {
   width: 100%;
-  max-width: 100%;
-  max-height: 42vh;
+  max-height: 70vh;
   object-fit: cover;
-  border-radius: 16px;
-  display: block;
+  border-radius: 18px;
+}
+
+.show-comments {
+  border-top: none;
+  padding-top: 0;
+  max-height: 75vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+}
+
+@media (max-width: 850px) {
+  .post-view-content {
+    grid-template-columns: 1fr;
+  }
+
+  .show-comments {
+    max-height: none;
+  }
 }
 #postViewVideo,
 #postViewPlaceholder {
