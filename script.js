@@ -372,6 +372,20 @@ function loadLocalData() {
   }
 }
 
+function savePostsCache() {
+  try {
+    const lightweightPosts = posts.map((post) => ({
+      ...post,
+      image: getCacheablePostMedia(post.image)
+    }));
+
+    localStorage.setItem(postsCacheKey, JSON.stringify(lightweightPosts));
+    writeRichPostsCache(posts);
+  } catch (error) {
+    console.warn("Could not save posts cache:", error);
+  }
+}
+
 // =========================
 // Helpers
 // =========================
@@ -1291,6 +1305,8 @@ async function loadPostsFromSupabase() {
     }));
 
     renderPosts();
+    hasFreshPostsLoaded = true;
+    savePostsCache();
 
   } catch (error) {
     console.error("Could not load posts:", error);
@@ -1322,10 +1338,18 @@ async function addPostToSupabase(newPost) {
 async function updatePostInSupabase(postId, updates) {
   try {
     await pb.collection("posts").update(postId, updates);
+    savePostsCache();
     return true;
 
   } catch (error) {
-    console.error("Could not update post:", error);
+    console.error("Could not update post:", {
+      postId,
+      updates,
+      error,
+      response: error?.response,
+      data: error?.data
+    });
+    savePostsCache();
     return false;
   }
 }
@@ -1671,8 +1695,6 @@ async function submitThreadReply() {
     (comment) => String(comment.id) === String(activeThreadCommentId)
   );
   if (!parentComment) return;
-  const oldComments = structuredClone(post.comments);
-
   const updatedComments = post.comments.map((comment) => {
     if (String(comment.id) !== String(activeThreadCommentId)) return comment;
 
@@ -1693,6 +1715,7 @@ async function submitThreadReply() {
   });
 
   post.comments = updatedComments;
+  savePostsCache();
 
   threadReplyInput.value = "";
   selectedThreadReplyMediaFile = null;
@@ -1715,18 +1738,7 @@ async function submitThreadReply() {
   });
 
   if (!ok) {
-    post.comments = oldComments;
-    renderPosts();
-
-    const restoredParentComment = post.comments.find(
-      (comment) => String(comment.id) === String(activeThreadCommentId)
-    );
-
-    if (restoredParentComment) {
-      renderSingleCommentThread(post, restoredParentComment);
-    }
-
-    alert("Could not save reply.");
+    console.warn("Reply saved locally, but PocketBase did not sync it.");
     return;
   }
 
@@ -1769,8 +1781,8 @@ async function submitPostViewComment() {
     replies: []
   };
 
-  const oldComments = [...post.comments];
   post.comments = [...post.comments, newComment];
+  savePostsCache();
 
   postViewCommentInput.value = "";
   selectedPostViewCommentMediaFile = null;
@@ -1784,13 +1796,7 @@ async function submitPostViewComment() {
   });
 
   if (!ok) {
-    post.comments = oldComments;
-    renderPosts();
-
-    const restoredPost = posts.find((p) => String(p.id) === String(activePostId));
-    if (restoredPost) openPostView(restoredPost);
-
-    alert("Could not save comment.");
+    console.warn("Comment saved locally, but PocketBase did not sync it.");
     return;
   }
 
