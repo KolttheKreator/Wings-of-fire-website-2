@@ -1355,7 +1355,6 @@ async function addPostToSupabase(newPost) {
     user_letter: newPost.userLetter,
     text: newPost.text,
     description: newPost.description,
-    image: newPost.image,
     likes: newPost.likes,
     liked_by: newPost.likedBy || [],
     comments: newPost.comments,
