@@ -129,14 +129,16 @@
 <input id="textColorPicker" type="color" value="#000000" />
 <input id="highlightColorPicker" type="color" value="#fff59d" />
 
-<div id="roleplayEditor" class="docs-page" contenteditable="true"></div>
+
 
     <div id="roleplayEditor" class="docs-page" contenteditable="true"></div>
   </div>
 </section>
   <template id="postTemplate">
     <article class="card">
-      <img class="card-image" src="" alt="post image" />
+      <img class="card-image hidden" src="" alt="post image" />
+<video class="card-video hidden" controls></video>
+<div class="card-placeholder hidden"></div>
 
       <div class="card-body">
         <div class="card-top">
@@ -233,7 +235,9 @@
       <button id="closePostViewBtn" class="close-bio-btn" type="button">✖</button>
 
       <div class="post-view-content">
-        <img id="postViewImage" class="post-view-image" src="" alt="Post image" />
+        <img id="postViewImage" class="post-view-image hidden" src="" alt="Post image" />
+<video id="postViewVideo" class="post-view-image hidden" controls></video>
+<div id="postViewPlaceholder" class="post-view-image hidden"></div>
 
         <div class="post-view-header">
           <div id="postViewAvatar" class="bio-avatar">K</div>
