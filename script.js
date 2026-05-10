@@ -1327,11 +1327,11 @@ async function loadPostsFromSupabase() {
       likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
       comments: Array.isArray(post.comments) ? post.comments : [],
       pinned: !!post.pinned,
-      createdAt: Number(post.created_at) || Date.now()
+      createdAt: Number(post.created_at) || new Date(post.created_at).getTime() || Date.now()
     }));
 
-    if (remotePosts.length === 0 && posts.length > 0) {
-      console.warn("PocketBase returned no posts, keeping cached posts visible.");
+    if (remotePosts.length === 0) {
+      console.warn("PocketBase returned no posts, keeping cached posts visible if available.");
       renderPosts();
       return;
     }
@@ -1350,26 +1350,65 @@ async function loadPostsFromSupabase() {
   }
 }
 async function addPostToSupabase(newPost) {
-  try {
-    await pb.collection("posts").create({
-      username: newPost.username,
-      user_letter: newPost.userLetter,
-      text: newPost.text,
-      description: newPost.description,
-      image: newPost.image,
-      likes: newPost.likes,
-      liked_by: newPost.likedBy || [],
-      comments: newPost.comments,
-      pinned: newPost.pinned,
-      created_at: newPost.createdAt
-    });
+  const basePayload = {
+    username: newPost.username,
+    user_letter: newPost.userLetter,
+    text: newPost.text,
+    description: newPost.description,
+    image: newPost.image,
+    likes: newPost.likes,
+    liked_by: newPost.likedBy || [],
+    comments: newPost.comments,
+    pinned: newPost.pinned
+  };
 
-    return true;
+  const payloads = [
+    {
+      ...basePayload,
+      created_at: newPost.createdAt
+    },
+    {
+      ...basePayload,
+      created_at: new Date(newPost.createdAt).toISOString()
+    },
+    basePayload
+  ];
+
+  let lastError = null;
+
+  try {
+    for (const payload of payloads) {
+      try {
+        await pb.collection("posts").create(payload);
+        return true;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
 
   } catch (error) {
-    console.error("Could not save post:", error);
+    console.error("Could not save post:", {
+      post: newPost,
+      error,
+      response: error?.response,
+      data: error?.data
+    });
     return false;
   }
+}
+
+function addPostLocally(newPost) {
+  const localPost = {
+    ...newPost,
+    id: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`
+  };
+
+  posts = [localPost, ...posts];
+  savePostsCache();
+  renderPosts();
+  return localPost;
 }
 
 async function updatePostInSupabase(postId, updates) {
@@ -2651,17 +2690,21 @@ if (postBtn) {
       };
 
       const ok = await addPostToSupabase(newPost);
-      if (!ok) return;
+      if (!ok) {
+        addPostLocally(newPost);
+      }
 
       const mentions = text.match(/(@[a-zA-Z0-9_]+)/g) || [];
-      for (const mention of mentions) {
-        if (bios[mention] && mention !== currentUser) {
-          await addNotification(
-            mention,
-            `${currentUser} mentioned you in a post`,
-            null,
-            "mention"
-          );
+      if (ok) {
+        for (const mention of mentions) {
+          if (bios[mention] && mention !== currentUser) {
+            await addNotification(
+              mention,
+              `${currentUser} mentioned you in a post`,
+              null,
+              "mention"
+            );
+          }
         }
       }
 
@@ -2677,7 +2720,9 @@ if (postBtn) {
       refreshPlaceholderColorButtons();
       if (mentionList) mentionList.classList.add("hidden");
 
-      await loadPostsFromSupabase();
+      if (ok) {
+        await loadPostsFromSupabase();
+      }
     } catch (error) {
       console.error("Could not post media:", error);
       alert("Could not upload that file.");
