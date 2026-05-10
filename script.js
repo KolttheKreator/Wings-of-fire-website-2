@@ -374,6 +374,8 @@ function loadLocalData() {
 
 function savePostsCache() {
   try {
+    if (posts.length === 0) return;
+
     const lightweightPosts = posts.map((post) => ({
       ...post,
       image: getCacheablePostMedia(post.image)
@@ -384,6 +386,30 @@ function savePostsCache() {
   } catch (error) {
     console.warn("Could not save posts cache:", error);
   }
+}
+
+function loadCachedPostsSnapshot() {
+  const cacheKeys = [
+    postsCacheKey,
+    "dragon_posts_cache_v2",
+    "dragon_posts_cache"
+  ];
+
+  for (const key of cacheKeys) {
+    const cached = localStorage.getItem(key);
+    if (!cached) continue;
+
+    try {
+      const parsedPosts = JSON.parse(cached);
+      if (Array.isArray(parsedPosts) && parsedPosts.length > 0) {
+        return parsedPosts;
+      }
+    } catch (error) {
+      console.warn(`Cache parse failed for ${key}`);
+    }
+  }
+
+  return [];
 }
 
 // =========================
@@ -1832,6 +1858,17 @@ function renderPosts() {
   feed.innerHTML = "";
   const sortedPosts = getSortedPosts();
 
+  if (sortedPosts.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "feed-empty-card";
+    empty.innerHTML = `
+      <h3>No posts found</h3>
+      <p>PocketBase is connected, but the posts collection is empty. Create a new post here, or check the PocketBase admin page if older posts should be there.</p>
+    `;
+    feed.appendChild(empty);
+    return;
+  }
+
   sortedPosts.forEach((post) => {
     const clone = template.content.cloneNode(true);
 
@@ -2751,19 +2788,13 @@ async function startApp() {
   updateAreaVisibility();
   hasFreshPostsLoaded = false;
 
-  // Instant load from the last lightweight post snapshot.
-  localStorage.removeItem("dragon_posts_cache");
-  localStorage.removeItem("dragon_posts_cache_v2");
-  const cached = localStorage.getItem(postsCacheKey);
+  const cachedPosts = loadCachedPostsSnapshot();
 
-  if (cached) {
-    try {
-      posts = JSON.parse(cached);
-      renderPosts();
-    } catch (e) {
-      console.warn("Cache parse failed");
-      localStorage.removeItem(postsCacheKey);
-    }
+  if (cachedPosts.length > 0) {
+    posts = cachedPosts;
+    renderPosts();
+  } else {
+    renderPosts();
   }
 
   readRichPostsCache().then((richCachedPosts) => {

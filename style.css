@@ -350,6 +350,26 @@ body {
   gap: 24px;
 }
 
+.feed-empty-card {
+  grid-column: 1 / -1;
+  background: var(--card);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 24px;
+  color: var(--text);
+}
+
+.feed-empty-card h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.feed-empty-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .card {
   position: relative;
   background: var(--card);
