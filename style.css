@@ -967,3 +967,190 @@ body.modal-open {
 .area-switcher:hover {
   background: white;
 }
+
+/* ===== COMMENT THREAD FIX ===== */
+
+.comment-thread-card {
+  background: #f9fafb;
+  border-radius: 18px;
+  padding: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.comment-thread-card:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+}
+
+.comment-thread-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.comment-thread-avatar,
+.thread-comment-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.comment-thread-user,
+.thread-comment-user {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.comment-thread-time,
+.thread-comment-time {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.comment-thread-text {
+  margin-top: 10px;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.comment-thread-meta {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.thread-comment {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.thread-comment.mine {
+  flex-direction: row-reverse;
+}
+
+.thread-comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.thread-comment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.thread-comment-bubble {
+  background: #f3f4f6;
+  border-radius: 18px;
+  padding: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.thread-comment.mine .thread-comment-bubble {
+  background: #ede9fe;
+}
+
+.thread-comment-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.thread-comment-action {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.thread-comment-action:hover {
+  transform: translateY(-1px);
+}
+
+.thread-comment-action.edit {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.thread-comment-action.edit:hover {
+  background: #bfdbfe;
+}
+
+.thread-comment-action.delete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.thread-comment-action.delete:hover {
+  background: #fecaca;
+}
+
+.comment-media,
+.thread-comment-bubble img,
+.thread-comment-bubble video {
+  width: 100%;
+  max-width: 320px;
+  border-radius: 14px;
+  margin-top: 10px;
+  display: block;
+  height: auto;
+}
+
+.thread-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+}
+
+.thread-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: min(540px, 100%);
+  height: 100%;
+  background: white;
+  z-index: 5001;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+}
+
+.thread-comments {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* prevents giant broken images */
+.thread-comment-bubble img,
+.thread-comment-bubble video,
+.comment-media img,
+.comment-media video {
+  max-width: 100%;
+  height: auto;
+  border-radius: 14px;
+}
+
+/* nicer spacing */
+.thread-comment + .thread-comment {
+  margin-top: 18px;
+}
