@@ -617,35 +617,8 @@ async function addNotification(targetUser, text, postId = null, type = "general"
   }
 }
 async function uploadProfileImage(file) {
-  if (!currentUser || !file) return null;
-  if (!file.type.startsWith("image/")) return null;
-
-  const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
-  const fileExt = file.name.split(".").pop() || "png";
-  const cacheVersion = Date.now();
-  const filePath = `${safeUser}/avatar.${fileExt}`;
-
-  const { error: uploadError } = await supabase
-    .storage
-    .from("avatars")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: true,
-      contentType: file.type || "image/png"
-    });
-
-  if (uploadError) {
-    console.error("Could not upload avatar:", uploadError.message);
-    console.warn("Falling back to compressed profile image in the profiles table.");
-    return resizeProfileImageToDataUrl(file);
-  }
-
-  const { data } = supabase
-    .storage
-    .from("avatars")
-    .getPublicUrl(filePath);
-
-  return `${data.publicUrl}?v=${cacheVersion}`;
+  alert("Profile picture uploads are disabled until converted to PocketBase.");
+  return null;
 }
 
 function resizeProfileImageToDataUrl(file) {
@@ -1359,28 +1332,9 @@ async function updatePostInSupabase(postId, updates) {
 
 
 async function saveProfileToSupabase(username) {
-  const profile = bios[username];
-  if (!profile) return false;
-
-  const { error } = await supabase
-    .from("profiles")
-    .upsert({
-      username,
-      role: profile.role,
-      bio: profile.bio,
-      likes: profile.likes,
-      tag: profile.tag,
-      image: profile.image || ""
-    });
-
-  if (error) {
-    console.error("Could not save profile:", error.message);
-    return false;
-  }
-
+  saveLocalData();
   return true;
 }
-
 async function loadProfilesFromSupabase() {
   const { data, error } = await supabase
     .from("profiles")
