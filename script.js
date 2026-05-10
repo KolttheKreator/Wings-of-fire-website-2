@@ -1998,14 +1998,13 @@ function renderPosts() {
     }
 
     if (commentsList) {
-      commentsList.innerHTML = "";
-      commentsList.style.display = "none";
-    }
+  commentsList.innerHTML = "";
+}
 
-    if (commentsPanel) {
-      commentsPanel.classList.add("hidden");
-      commentsPanel.style.display = "none";
-    }
+if (commentsPanel) {
+  commentsPanel.classList.add("hidden");
+  commentsPanel.style.display = "";
+}
 
     if (likeBtn) {
   const alreadyLiked = currentUser && post.likedBy.includes(currentUser);
@@ -2050,12 +2049,12 @@ function renderPosts() {
   };
 }
 
-    if (commentToggleBtn) {
-      commentToggleBtn.onclick = function (e) {
-        e.stopPropagation();
-        openPostView(post);
-      };
-    }
+if (commentToggleBtn && commentsPanel) {
+  commentToggleBtn.onclick = function (e) {
+    e.stopPropagation();
+    commentsPanel.classList.toggle("hidden");
+  };
+}
 
     if (commentSubmitBtn && commentInput) {
       commentSubmitBtn.onclick = async function (e) {
