@@ -153,6 +153,7 @@ let editingPostId = null;
 let activeThreadPostId = null;
 let activeThreadCommentId = null;
 let postsChannel = null;
+let notificationsChannel = null;
 let profilesChannel = null;
 let conversations = [];
 let activeConversationId = null;
@@ -677,8 +678,8 @@ async function addNotification(targetUser, text, postId = null, type = "general"
   }
 }
 async function uploadProfileImage(file) {
-  alert("Profile picture uploads are disabled until converted to PocketBase.");
-  return null;
+  if (!file || !file.type.startsWith("image/")) return null;
+  return await resizeProfileImageToDataUrl(file);
 }
 
 function resizeProfileImageToDataUrl(file) {
@@ -996,6 +997,10 @@ async function loadNotificationsFromSupabase() {
     }));
 
     updateNotificationCount();
+
+    if (notifModal && !notifModal.classList.contains("hidden")) {
+      openNotifications();
+    }
   } catch (error) {
     console.error("Could not load notifications:", error);
   }
@@ -1158,8 +1163,12 @@ async function signInWithKeyword() {
   hideLoginScreen();
   refreshMainProfileUI();
 
+  await saveProfileToSupabase(currentUser);
+  await loadProfilesFromSupabase();
   await loadPostsFromSupabase();
   await loadNotificationsFromSupabase();
+  subscribeToProfileChanges();
+  subscribeToNotificationChanges();
 
   if (loginMessage) loginMessage.textContent = "";
   if (keywordInput) keywordInput.value = "";
@@ -1173,6 +1182,8 @@ function logout() {
   closeProfileEditor();
   closePostView();
   closeNotifications();
+  unsubscribeFromNotificationChanges();
+  unsubscribeFromProfileChanges();
 
   if (keywordInput) keywordInput.value = "";
   if (loginMessage) loginMessage.textContent = "";
@@ -1359,6 +1370,29 @@ async function loadPostsFromSupabase() {
     posts = remotePosts;
 
     renderPosts();
+
+    if (activePostId) {
+      const activePost = posts.find((post) => String(post.id) === String(activePostId));
+      if (activePost) {
+        openPostView(activePost);
+      } else {
+        closePostView();
+      }
+    }
+
+    if (activeThreadPostId && activeThreadCommentId) {
+      const threadPost = posts.find((post) => String(post.id) === String(activeThreadPostId));
+      const threadComment = threadPost?.comments.find(
+        (comment) => String(comment.id) === String(activeThreadCommentId)
+      );
+
+      if (threadPost && threadComment) {
+        renderSingleCommentThread(threadPost, threadComment);
+      } else {
+        closeThreadPanel();
+      }
+    }
+
     hasFreshPostsLoaded = true;
 
     if (posts.length > 0) {
@@ -1451,21 +1485,84 @@ async function updatePostInSupabase(postId, updates) {
 }
 
 
-async function saveProfileToSupabase(username) {
-  saveLocalData();
-  return true;
-}
-async function loadProfilesFromSupabase() {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*");
+function getProfileImageFromPocketBaseRecord(record) {
+  if (record.image_url) return record.image_url;
 
-  if (error) {
-    console.error("Could not load profiles:", error.message);
-    return;
+  const image = Array.isArray(record.image) ? record.image[0] : record.image;
+  if (!image) return "";
+
+  if (typeof image === "string" && (image.startsWith("http") || image.startsWith("data:"))) {
+    return image;
   }
 
-  (data || []).forEach(applyProfileFromSupabase);
+  try {
+    return pb.files.getURL(record, image);
+  } catch (error) {
+    return "";
+  }
+}
+
+async function findProfileRecord(username) {
+  try {
+    return await pb.collection("profiles").getFirstListItem(
+      `username = "${username}"`
+    );
+  } catch (error) {
+    if (error?.status === 404) return null;
+    throw error;
+  }
+}
+
+async function saveProfileToSupabase(username) {
+  if (!username || !bios[username]) return false;
+
+  const profile = bios[username];
+  const payload = {
+    username,
+    role: profile.role || "Member",
+    bio: profile.bio || "No bio yet.",
+    likes: profile.likes || "Cool stuff",
+    tag: profile.tag || "Dragon",
+    image_url: profile.image || ""
+  };
+
+  try {
+    const existingProfile = await findProfileRecord(username);
+
+    if (existingProfile) {
+      await pb.collection("profiles").update(existingProfile.id, payload);
+    } else {
+      await pb.collection("profiles").create(payload);
+    }
+
+    saveLocalData();
+    return true;
+  } catch (error) {
+    console.error("Could not save profile:", {
+      username,
+      payload,
+      error,
+      response: error?.response,
+      data: error?.data
+    });
+    saveLocalData();
+    return false;
+  }
+}
+
+async function loadProfilesFromSupabase() {
+  try {
+    const data = await pb.collection("profiles").getFullList({
+      sort: "username"
+    });
+
+    (data || []).forEach(applyProfileFromSupabase);
+    saveLocalData();
+    refreshMainProfileUI();
+    renderPosts();
+  } catch (error) {
+    console.error("Could not load profiles:", error);
+  }
 }
 
 function applyProfileFromSupabase(profile) {
@@ -1475,7 +1572,7 @@ function applyProfileFromSupabase(profile) {
   bios[profile.username].bio = profile.bio || bios[profile.username].bio;
   bios[profile.username].likes = profile.likes || bios[profile.username].likes;
   bios[profile.username].tag = profile.tag || bios[profile.username].tag;
-  bios[profile.username].image = profile.image || bios[profile.username].image;
+  bios[profile.username].image = getProfileImageFromPocketBaseRecord(profile) || bios[profile.username].image;
 }
 
 async function deletePostFromSupabase(postId) {
@@ -2610,12 +2707,47 @@ if (messageInput) {
 }
 
 if (profilePicInput) {
-  profilePicInput.addEventListener("change", function () {
-    alert("Profile picture uploads are disabled until converted to PocketBase.");
-    profilePicInput.value = "";
+  profilePicInput.addEventListener("change", async function () {
+    if (!currentUser || !bios[currentUser]) return;
+
+    const file = profilePicInput.files?.[0] || null;
+
+    if (!file) {
+      if (profilePicName) {
+        profilePicName.textContent = bios[currentUser].image
+          ? "Profile pic selected"
+          : "No profile pic chosen";
+      }
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      profilePicInput.value = "";
+      alert("Please choose an image file.");
+      return;
+    }
 
     if (profilePicName) {
-      profilePicName.textContent = "No profile pic chosen";
+      profilePicName.textContent = "Saving profile pic...";
+    }
+
+    const imageData = await uploadProfileImage(file);
+    profilePicInput.value = "";
+
+    if (!imageData) {
+      if (profilePicName) {
+        profilePicName.textContent = "No profile pic chosen";
+      }
+      alert("Could not read that profile picture.");
+      return;
+    }
+
+    setProfileImage(imageData);
+    saveLocalData();
+    saveProfileToSupabase(currentUser);
+
+    if (profilePicName) {
+      profilePicName.textContent = file.name;
     }
   });
 }
@@ -2757,15 +2889,25 @@ if (saveProfileBtn) {
   saveProfileBtn.onclick = async function () {
     if (!currentUser || !bios[currentUser]) return;
 
+    saveProfileBtn.disabled = true;
+    saveProfileBtn.textContent = "Saving...";
+
     bios[currentUser].role = (editRoleInput ? editRoleInput.value.trim() : "") || "Member";
     bios[currentUser].bio = (editBioInput ? editBioInput.value.trim() : "") || "No bio yet.";
     bios[currentUser].likes = (editLikesInput ? editLikesInput.value.trim() : "") || "Cool stuff";
     bios[currentUser].tag = (editTagInput ? editTagInput.value.trim() : "") || "Dragon";
 
-    saveLocalData();
+    const ok = await saveProfileToSupabase(currentUser);
     refreshMainProfileUI();
     closeProfileEditor();
     renderPosts();
+
+    saveProfileBtn.disabled = false;
+    saveProfileBtn.textContent = "Save Profile";
+
+    if (!ok) {
+      alert("Profile saved on this device, but PocketBase did not sync it.");
+    }
   };
 }
 
@@ -2872,18 +3014,19 @@ async function startApp() {
   });
 
   await Promise.all([
-    //loadProfilesFromSupabase().then(() => {
-      //refreshMainProfileUI();
-      //renderPosts();
-    //}),
+    loadProfilesFromSupabase(),
     loadPostsFromSupabase()
   ]);
 
   if (currentUser && bios[currentUser]) {
     hideLoginScreen();
+    await saveProfileToSupabase(currentUser);
+    await loadProfilesFromSupabase();
     refreshMainProfileUI();
     // await loadConversations();
     await loadNotificationsFromSupabase();
+    subscribeToProfileChanges();
+    subscribeToNotificationChanges();
   } else {
     currentUser = null;
     notifications = [];
@@ -3155,10 +3298,58 @@ function renderConversationList() {
 async function sendMessage() {
   alert("Messages are disabled until converted to PocketBase.");
 }
-function subscribeToPostChanges() {
-  pb.collection("posts").subscribe("*", async function () {
-    await loadPostsFromSupabase();
-  });
+async function subscribeToPostChanges() {
+  if (postsChannel) return;
+
+  try {
+    postsChannel = await pb.collection("posts").subscribe("*", async function () {
+      await loadPostsFromSupabase();
+    });
+  } catch (error) {
+    console.error("Could not subscribe to post changes:", error);
+  }
+}
+
+function unsubscribeFromNotificationChanges() {
+  if (!notificationsChannel) return;
+
+  notificationsChannel();
+  notificationsChannel = null;
+}
+
+function unsubscribeFromProfileChanges() {
+  if (!profilesChannel) return;
+
+  profilesChannel();
+  profilesChannel = null;
+}
+
+async function subscribeToProfileChanges() {
+  if (profilesChannel) return;
+
+  try {
+    profilesChannel = await pb.collection("profiles").subscribe("*", async function () {
+      await loadProfilesFromSupabase();
+    });
+  } catch (error) {
+    console.error("Could not subscribe to profile changes:", error);
+  }
+}
+
+async function subscribeToNotificationChanges() {
+  if (!currentUser || notificationsChannel) return;
+
+  try {
+    notificationsChannel = await pb.collection("notifications").subscribe("*", async function (event) {
+      const targetUser = event?.record?.target_user;
+
+      if (!targetUser || targetUser === currentUser) {
+        await loadNotificationsFromSupabase();
+      }
+    });
+  } catch (error) {
+    console.error("Could not subscribe to notification changes:", error);
+  }
 }
 
 startApp();
