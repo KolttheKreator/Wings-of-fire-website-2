@@ -1,9 +1,8 @@
-console.log("script loaded");
-import { createClient } from "https://esm.sh/@supabase/supabase-js";
 
-const supabaseUrl = "https://cvjkxmgfiaoetepwfyqi.supabase.co";
-const supabaseKey = "sb_publishable_92kz51al3ZuihOY047N5Gw_zRqOGQ2v";
-const supabase = createClient(supabaseUrl, supabaseKey);
+console.log("script loaded");
+import PocketBase from "https://esm.sh/pocketbase";
+
+const pb = new PocketBase("http://127.0.0.1:8090");
 const postsCacheKey = "dragon_posts_cache_v3";
 const postsRichCacheDbName = "dragon-rich-cache";
 const postsRichCacheStoreName = "app_cache";
@@ -388,7 +387,7 @@ function closeMessagesModal() {
   if (messageInput) messageInput.value = "";
 
   if (messagesChannel) {
-    supabase.removeChannel(messagesChannel);
+    //supabase.removeChannel(messagesChannel);
     messagesChannel = null;
   }
 }
@@ -600,22 +599,22 @@ function updateNotificationCount() {
 async function addNotification(targetUser, text, postId = null, type = "general") {
   const actorUser = currentUser || "System";
 
-  const { error } = await supabase.from("notifications").insert({
-    target_user: targetUser,
-    actor_user: actorUser,
-    text: text,
-    post_id: postId,
-    type: type,
-    read: false,
-    created_at: Date.now()
-  });
+  try {
+    await pb.collection("notifications").create({
+      target_user: targetUser,
+      actor_user: actorUser,
+      text: text,
+      post_id: postId || "",
+      type: type,
+      read: false,
+      created_at: Date.now()
+    });
 
-  if (error) {
-    console.error("Could not add notification:", error.message);
+    return true;
+  } catch (error) {
+    console.error("Could not add notification:", error);
     return false;
   }
-
-  return true;
 }
 async function uploadProfileImage(file) {
   if (!currentUser || !file) return null;
@@ -685,37 +684,8 @@ function resizeProfileImageToDataUrl(file) {
 }
 
 async function uploadPostVideo(file) {
-  if (!currentUser || !file) return null;
-
-  const safeUser = currentUser.replace("@", "").replace(/[^a-zA-Z0-9_]/g, "_");
-  const fileExt = file.name.split(".").pop() || "mp4";
-  const safeName = file.name
-    .replace(/\.[^/.]+$/, "")
-    .replace(/[^a-zA-Z0-9_-]/g, "_")
-    .slice(0, 40) || "video";
-  const filePath = `${safeUser}/posts/${Date.now()}-${safeName}.${fileExt}`;
-
-  const { error: uploadError } = await supabase
-    .storage
-    .from("avatars")
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || "video/mp4"
-    });
-
-  if (uploadError) {
-    console.error("Could not upload post video:", uploadError.message);
-    alert("Could not upload video. Try a smaller MP4, or check the storage bucket settings.");
-    return null;
-  }
-
-  const { data } = supabase
-    .storage
-    .from("avatars")
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
+  alert("Video uploads are disabled until converted to PocketBase.");
+  return null;
 }
 
 function readFileAsDataUrl(file) {
@@ -975,68 +945,64 @@ async function loadNotificationsFromSupabase() {
     return;
   }
 
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("*")
-    .eq("target_user", currentUser)
-    .order("created_at", { ascending: false });
+  try {
+    const data = await pb.collection("notifications").getFullList({
+      filter: `target_user = "${currentUser}"`,
+      sort: "-created_at"
+    });
 
-  if (error) {
-    console.error("Could not load notifications:", error.message);
-    return;
+    notifications = data.map((notif) => ({
+      id: notif.id,
+      recipient: notif.target_user,
+      sender: notif.actor_user,
+      text: notif.text,
+      postId: notif.post_id,
+      type: notif.type,
+      createdAt: notif.created_at,
+      read: notif.read
+    }));
+
+    updateNotificationCount();
+  } catch (error) {
+    console.error("Could not load notifications:", error);
   }
-
-  notifications = (data || []).map((notif) => ({
-    id: notif.id,
-    recipient: notif.target_user,
-    sender: notif.actor_user,
-    text: notif.text,
-    postId: notif.post_id,
-    type: notif.type,
-    createdAt: notif.created_at,
-    read: notif.read
-  }));
-
-  updateNotificationCount();
 }
 
 async function markNotificationAsRead(notificationId) {
-  const { error } = await supabase
-    .from("notifications")
-    .update({ read: true })
-    .eq("id", notificationId);
+  try {
+    await pb.collection("notifications").update(notificationId, {
+      read: true
+    });
 
-  if (error) {
-    console.error("Could not mark notification as read:", error.message);
-    return;
+    const notif = notifications.find((n) => n.id === notificationId);
+    if (notif) notif.read = true;
+
+    updateNotificationCount();
+  } catch (error) {
+    console.error("Could not mark notification as read:", error);
   }
-
-  const notif = notifications.find((n) => n.id === notificationId);
-  if (notif) {
-    notif.read = true;
-  }
-
-  updateNotificationCount();
 }
 
 async function clearAllNotifications() {
   if (!currentUser) return;
 
-  const { error } = await supabase
-    .from("notifications")
-    .delete()
-    .eq("target_user", currentUser);
+  try {
+    const userNotifications = await pb.collection("notifications").getFullList({
+      filter: `target_user = "${currentUser}"`
+    });
 
-  if (error) {
-    console.error("Could not clear notifications:", error.message);
+    for (const notif of userNotifications) {
+      await pb.collection("notifications").delete(notif.id);
+    }
+
+    notifications = [];
+    saveLocalData();
+    updateNotificationCount();
+    openNotifications();
+  } catch (error) {
+    console.error("Could not clear notifications:", error);
     alert("Could not clear notifications.");
-    return;
   }
-
-  notifications = [];
-  saveLocalData();
-  updateNotificationCount();
-  openNotifications();
 }
 
 async function openNotificationTarget(notificationId) {
@@ -1227,21 +1193,8 @@ function openBio(usernameText) {
       messageUserBtn.onclick = null;
     } else {
       messageUserBtn.classList.remove("hidden");
-
-      messageUserBtn.onclick = async function () {
-        console.log("Message button clicked for:", usernameText);
-
-        const conversation = await getOrCreateConversation(usernameText);
-        console.log("Conversation result:", conversation);
-
-        if (!conversation) {
-          alert("Could not open conversation.");
-          return;
-        }
-
-        closeBio();
-        await loadConversations();
-        await openConversation(conversation.id, usernameText);
+      messageUserBtn.onclick = function () {
+        alert("Messages are disabled until converted to PocketBase.");
       };
     }
   }
@@ -1345,93 +1298,66 @@ function insertMention(user) {
 // Posts / Supabase
 // =========================
 async function loadPostsFromSupabase() {
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Could not load posts:", error.message);
-    return;
-  }
-
-  posts = (data || []).map((post) => ({
-  id: post.id,
-  username: post.username,
-  userLetter: post.user_letter || "",
-  text: post.text,
-  description: post.description || "",
-  image: post.image || "",
-  likes: post.likes || 0,
-  likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
-  comments: Array.isArray(post.comments) ? post.comments : [],
-  pinned: !!post.pinned,
-  createdAt: Number(post.created_at) || Date.now()
-}));
-  hasFreshPostsLoaded = true;
-
   try {
-  const lightweightPosts = posts.slice(0, 20).map((p) => ({
-    id: p.id,
-    username: p.username,
-    userLetter: p.userLetter,
-    text: p.text,
-    description: p.description,
-    image: getCacheablePostMedia(p.image),
-    likes: p.likes,
-    likedBy: p.likedBy,
-    pinned: p.pinned,
-    createdAt: p.createdAt,
-    comments: []
-  }));
+    const data = await pb.collection("posts").getFullList({
+      sort: "-created_at"
+    });
 
-  localStorage.setItem(postsCacheKey, JSON.stringify(lightweightPosts));
-} catch (e) {
-  console.warn("Storage full, skipping cache");
+    posts = (data || []).map((post) => ({
+      id: post.id,
+      username: post.username,
+      userLetter: post.user_letter || "",
+      text: post.text,
+      description: post.description || "",
+      image: post.image || "",
+      likes: post.likes || 0,
+      likedBy: Array.isArray(post.liked_by) ? post.liked_by : [],
+      comments: Array.isArray(post.comments) ? post.comments : [],
+      pinned: !!post.pinned,
+      createdAt: Number(post.created_at) || Date.now()
+    }));
+
+    renderPosts();
+
+  } catch (error) {
+    console.error("Could not load posts:", error);
+  }
 }
-
-  writeRichPostsCache(posts.slice(0, 20));
-
-  renderPosts();
-}
-
 async function addPostToSupabase(newPost) {
-  const { error } = await supabase.from("posts").insert({
-    username: newPost.username,
-    user_letter: newPost.userLetter,
-    text: newPost.text,
-    description: newPost.description,
-    image: newPost.image,
-    likes: newPost.likes,
-    liked_by: newPost.likedBy || [],
-    comments: newPost.comments,
-    pinned: newPost.pinned,
-    created_at: newPost.createdAt
-  });
+  try {
+    await pb.collection("posts").create({
+      username: newPost.username,
+      user_letter: newPost.userLetter,
+      text: newPost.text,
+      description: newPost.description,
+      image: newPost.image,
+      likes: newPost.likes,
+      liked_by: newPost.likedBy || [],
+      comments: newPost.comments,
+      pinned: newPost.pinned,
+      created_at: newPost.createdAt
+    });
 
-  if (error) {
-    console.error("Could not save post:", error.message);
-    alert("Could not save post.");
+    return true;
+
+  } catch (error) {
+    console.error("Could not save post:", error);
     return false;
   }
-
-  return true;
 }
 
 async function updatePostInSupabase(postId, updates) {
-  const { error } = await supabase
-    .from("posts")
-    .update(updates)
-    .eq("id", postId);
+  try {
+    await pb.collection("posts").update(postId, updates);
+    return true;
 
-  if (error) {
-    console.error("Could not update post:", error.message);
-    alert("Could not update post.");
+  } catch (error) {
+    console.error("Could not update post:", error);
     return false;
   }
-
-  return true;
 }
+
+
 async function saveProfileToSupabase(username) {
   const profile = bios[username];
   if (!profile) return false;
@@ -1479,18 +1405,14 @@ function applyProfileFromSupabase(profile) {
 }
 
 async function deletePostFromSupabase(postId) {
-  const { error } = await supabase
-    .from("posts")
-    .delete()
-    .eq("id", postId);
+  try {
+    await pb.collection("posts").delete(postId);
+    return true;
 
-  if (error) {
-    console.error("Could not delete post:", error.message);
-    alert("Could not delete post.");
+  } catch (error) {
+    console.error("Could not delete post:", error);
     return false;
   }
-
-  return true;
 }
 
 // =========================
@@ -1555,9 +1477,11 @@ function openPostView(post) {
       card.innerHTML = `
         <div class="comment-thread-top">
           <div class="comment-thread-avatar">${avatarLetter}</div>
+          <div>
           <div class="comment-thread-head">
             <div>
             <div class="comment-thread-user">${comment.user}</div>
+            <div class="comment-thread-time">${comment.created_at ? formatTime(comment.created_at) : ""}</div>
             <div class="comment-thread-time">${comment.created_at ? formatExactTime(comment.created_at) : ""}</div>
             </div>
           </div>
@@ -1681,6 +1605,7 @@ function renderSingleCommentThread(post, parentComment) {
 
   const mainTime = document.createElement("div");
   mainTime.className = "thread-comment-time";
+  mainTime.textContent = parentComment.created_at ? formatTime(parentComment.created_at) : "";
   mainTime.textContent = parentComment.created_at ? formatExactTime(parentComment.created_at) : "";
 
   if (canManageComment(parentComment.user)) {
@@ -1705,9 +1630,9 @@ function renderSingleCommentThread(post, parentComment) {
     mainHeader.appendChild(actions);
   }
 
-  mainBody.appendChild(mainHeader);
-  mainBody.appendChild(mainBubble);
-  mainBody.appendChild(mainTime);
+ mainBody.appendChild(mainHeader);
+mainBody.appendChild(mainBubble);
+mainBody.appendChild(mainTime);
 
   mainRow.appendChild(mainAvatar);
   mainRow.appendChild(mainBody);
@@ -1741,6 +1666,7 @@ function renderSingleCommentThread(post, parentComment) {
 
     const time = document.createElement("div");
     time.className = "thread-comment-time";
+    time.textContent = reply.created_at ? formatTime(reply.created_at) : "";
     time.textContent = reply.created_at ? formatExactTime(reply.created_at) : "";
 
     if (canManageComment(reply.user)) {
@@ -1766,8 +1692,8 @@ function renderSingleCommentThread(post, parentComment) {
     }
 
     body.appendChild(header);
-    body.appendChild(bubble);
-    body.appendChild(time);
+body.appendChild(bubble);
+body.appendChild(time);
 
     row.appendChild(avatar);
     row.appendChild(body);
@@ -2592,9 +2518,7 @@ if (threadBackdrop) {
 }
 if (openMessagesBtn) {
   openMessagesBtn.addEventListener("click", async function () {
-    if (!currentUser) return;
-    await loadConversations();
-    openMessagesModal();
+    alert("Messages are disabled until we convert them to PocketBase.");
   });
 }
 if (closeMessagesBtn) {
@@ -2619,35 +2543,13 @@ if (messageInput) {
 }
 
 if (profilePicInput) {
-  profilePicInput.addEventListener("change", async function () {
-    const file = profilePicInput.files?.[0];
+  profilePicInput.addEventListener("change", function () {
+    alert("Profile picture uploads are disabled until converted to PocketBase.");
+    profilePicInput.value = "";
 
-    if (!file) {
-      if (profilePicName) profilePicName.textContent = "No profile pic chosen";
-      return;
+    if (profilePicName) {
+      profilePicName.textContent = "No profile pic chosen";
     }
-
-    if (!file.type.startsWith("image/")) {
-      if (profilePicName) profilePicName.textContent = "No profile pic chosen";
-      alert("Please choose an image file for your profile picture.");
-      return;
-    }
-
-    if (profilePicName) profilePicName.textContent = file.name;
-
-    const publicUrl = await uploadProfileImage(file);
-    if (!publicUrl) {
-      alert("Could not upload profile picture.");
-      return;
-    }
-
-    bios[currentUser].image = publicUrl;
-    const saved = await saveProfileToSupabase(currentUser);
-    if (!saved) return;
-
-    saveLocalData();
-    refreshMainProfileUI();
-    renderPosts();
   });
 }
 
@@ -2787,7 +2689,6 @@ if (saveProfileBtn) {
     bios[currentUser].likes = (editLikesInput ? editLikesInput.value.trim() : "") || "Cool stuff";
     bios[currentUser].tag = (editTagInput ? editTagInput.value.trim() : "") || "Dragon";
 
-    await saveProfileToSupabase(currentUser);
     saveLocalData();
     refreshMainProfileUI();
     closeProfileEditor();
@@ -2852,23 +2753,23 @@ if (postViewCommentInput) {
 if (areaSelect) {
   areaSelect.addEventListener("change", updateAreaVisibility);
 }
-async function loadConversations() {
-  if (!currentUser) return;
+// async function loadConversations() {
+//   if (!currentUser) return;
 
-  const { data, error } = await supabase
-    .from("conversations")
-    .select("*")
-    .or(`user_a.eq.${currentUser},user_b.eq.${currentUser}`)
-    .order("created_at", { ascending: false });
+//   const { data, error } = await supabase
+//     .from("conversations")
+//     .select("*")
+//     .or(`user_a.eq.${currentUser},user_b.eq.${currentUser}`)
+//     .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("Could not load conversations:", error.message);
-    return;
-  }
+//   if (error) {
+//     console.error("Could not load conversations:", error.message);
+//     return;
+//   }
 
-  conversations = data || [];
-  renderConversationList();
-}
+//   conversations = data || [];
+//   renderConversationList();
+// }
 
 // =========================
 // App start
@@ -2904,17 +2805,17 @@ async function startApp() {
   });
 
   await Promise.all([
-    loadProfilesFromSupabase().then(() => {
-      refreshMainProfileUI();
-      renderPosts();
-    }),
+    //loadProfilesFromSupabase().then(() => {
+      //refreshMainProfileUI();
+      //renderPosts();
+    //}),
     loadPostsFromSupabase()
   ]);
 
   if (currentUser && bios[currentUser]) {
     hideLoginScreen();
     refreshMainProfileUI();
-    await loadConversations();
+    // await loadConversations();
     await loadNotificationsFromSupabase();
   } else {
     currentUser = null;
@@ -2933,283 +2834,264 @@ async function startApp() {
   }
 
   subscribeToPostChanges();
-  subscribeToProfileChanges();
-  subscribeToNotificationChanges();
+  //subscribeToProfileChanges();
+  //subscribeToNotificationChanges();
 }
-function subscribeToProfileChanges() {
-  if (profilesChannel) return;
+// function subscribeToProfileChanges() {
+//   if (profilesChannel) return;
 
-  profilesChannel = supabase
-    .channel("public-profiles-live")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "profiles"
-      },
-      (payload) => {
-        applyProfileFromSupabase(payload.new);
-        saveLocalData();
-        refreshMainProfileUI();
-        renderPosts();
-      }
-    )
-    .subscribe((status) => {
-      console.log("Supabase profiles live status:", status);
-    });
-}
-function subscribeToNotificationChanges() {
-  if (!currentUser) return;
+//   profilesChannel = supabase
+//     .channel("public-profiles-live")
+//     .on(
+//       "postgres_changes",
+//       {
+//         event: "*",
+//         schema: "public",
+//         table: "profiles"
+//       },
+//       (payload) => {
+//         applyProfileFromSupabase(payload.new);
+//         saveLocalData();
+//         refreshMainProfileUI();
+//         renderPosts();
+//       }
+//     )
+//     .subscribe((status) => {
+//       console.log("Supabase profiles live status:", status);
+//     });
+// }
+// function subscribeToNotificationChanges() {
+//   if (!currentUser) return;
 
-  supabase
-    .channel("public-notifications-live-" + currentUser)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "notifications",
-        filter: `target_user=eq.${currentUser}`
-      },
-      async () => {
-        await loadNotificationsFromSupabase();
-      }
-    )
-    .subscribe((status) => {
-      console.log("Supabase notification live status:", status);
-    });
-}
-function subscribeToPostChanges() {
-  if (postsChannel) return;
+//   supabase
+//     .channel("public-notifications-live-" + currentUser)
+//     .on(
+//       "postgres_changes",
+//       {
+//         event: "*",
+//         schema: "public",
+//         table: "notifications",
+//         filter: `target_user=eq.${currentUser}`
+//       },
+//       async () => {
+//         await loadNotificationsFromSupabase();
+//       }
+//     )
+//     .subscribe((status) => {
+//       console.log("Supabase notification live status:", status);
+//     });
+// }
+// function subscribeToPostChanges() {
+//   pb.collection("posts").subscribe("*", async function () {
+//     await loadPostsFromSupabase();
+//   });
+// }
 
-  postsChannel = supabase
-    .channel("public-posts-live")
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "posts"
-      },
-      async () => {
-        await loadPostsFromSupabase();
+//  async function getOrCreateConversation(otherUser) {
+// //   if (!currentUser || !otherUser || currentUser === otherUser) {
+// //     console.log("Blocked getOrCreateConversation:", {
+// //       currentUser,
+// //       otherUser
+// //     });
+// //     return null;
+// //   }
 
-        if (activePostId) {
-          const updatedPost = posts.find((p) => String(p.id) === String(activePostId));
-          if (updatedPost) {
-            openPostView(updatedPost);
-          }
-        }
+//   const [userA, userB] = [currentUser, otherUser].sort();
 
-        if (activeThreadPostId && activeThreadCommentId) {
-          const updatedPost = posts.find(
-            (p) => String(p.id) === String(activeThreadPostId)
-          );
+//   console.log("Looking for conversation between:", userA, userB);
 
-          if (updatedPost) {
-            const updatedComment = updatedPost.comments.find(
-              (c) => String(c.id) === String(activeThreadCommentId)
-            );
+//   const { data: existing, error: findError } = await supabase
+//     .from("conversations")
+//     .select("*")
+//     .eq("user_a", userA)
+//     .eq("user_b", userB)
+//     .maybeSingle();
 
-            if (updatedComment) {
-              renderSingleCommentThread(updatedPost, updatedComment);
-            }
-          }
-        }
-      }
-    )
-    .subscribe((status) => {
-      console.log("Supabase post live status:", status);
-    });
-}
+//   if (findError) {
+//     console.error("Could not find conversation:", findError);
+//     alert("Find conversation failed: " + findError.message);
+//     return null;
+//   }
 
-async function getOrCreateConversation(otherUser) {
-  if (!currentUser || !otherUser || currentUser === otherUser) {
-    console.log("Blocked getOrCreateConversation:", {
-      currentUser,
-      otherUser
-    });
-    return null;
-  }
+//   if (existing) {
+//     console.log("Found existing conversation:", existing);
+//     return existing;
+//   }
 
-  const [userA, userB] = [currentUser, otherUser].sort();
+//   console.log("No conversation found. Creating one now...");
 
-  console.log("Looking for conversation between:", userA, userB);
+//   const { data: created, error: createError } = await supabase
+//     .from("conversations")
+//     .insert({
+//       user_a: userA,
+//       user_b: userB,
+//       created_at: Date.now()
+//     })
+//     .select()
+//     .single();
 
-  const { data: existing, error: findError } = await supabase
-    .from("conversations")
-    .select("*")
-    .eq("user_a", userA)
-    .eq("user_b", userB)
-    .maybeSingle();
+//   if (createError) {
+//     console.error("Could not create conversation:", createError);
+//     alert("Create conversation failed: " + createError.message);
+//     return null;
+//   }
 
-  if (findError) {
-    console.error("Could not find conversation:", findError);
-    alert("Find conversation failed: " + findError.message);
-    return null;
-  }
+//   console.log("Created conversation:", created);
+//   return created;
+// }
 
-  if (existing) {
-    console.log("Found existing conversation:", existing);
-    return existing;
-  }
+// function renderConversationList() {
+//   if (!conversationList) return;
 
-  console.log("No conversation found. Creating one now...");
+//   conversationList.innerHTML = "";
 
-  const { data: created, error: createError } = await supabase
-    .from("conversations")
-    .insert({
-      user_a: userA,
-      user_b: userB,
-      created_at: Date.now()
-    })
-    .select()
-    .single();
+//   if (conversations.length === 0) {
+//     const empty = document.createElement("div");
+//     empty.className = "comment";
+//     empty.textContent = "No messages yet.";
+//     conversationList.appendChild(empty);
+//     return;
+//   }
 
-  if (createError) {
-    console.error("Could not create conversation:", createError);
-    alert("Create conversation failed: " + createError.message);
-    return null;
-  }
+//   conversations.forEach((conversation) => {
+//     const otherUser =
+//       conversation.user_a === currentUser
+//         ? conversation.user_b
+//         : conversation.user_a;
 
-  console.log("Created conversation:", created);
-  return created;
-}
+//     const div = document.createElement("div");
+//     div.className =
+//       "conversation-item" +
+//       (String(conversation.id) === String(activeConversationId) ? " active" : "");
+//     div.textContent = otherUser;
+
+//     div.onclick = async function () {
+//       await openConversation(conversation.id, otherUser);
+//     };
+
+//     conversationList.appendChild(div);
+//   });
+// }
+
+// async function loadMessages(conversationId) {
+//   const { data, error } = await supabase
+//     .from("messages")
+//     .select("*")
+//     .eq("conversation_id", conversationId)
+//     .order("created_at", { ascending: true });
+
+//   if (error) {
+//     console.error("Could not load messages:", error.message);
+//     return [];
+//   }
+
+//   return data || [];
+// }
+// function renderMessages(messages) {
+//   if (!messagesList) return;
+
+//   messagesList.innerHTML = "";
+
+//   if (messages.length === 0) {
+//     const empty = document.createElement("div");
+//     empty.className = "comment";
+//     empty.textContent = "No messages yet. Start the chat!";
+//     messagesList.appendChild(empty);
+//     return;
+//   }
+
+//   messages.forEach((msg) => {
+//     const div = document.createElement("div");
+//     div.className =
+//       "message-bubble " + (msg.sender === currentUser ? "mine" : "theirs");
+//     div.textContent = msg.text;
+//     messagesList.appendChild(div);
+//   });
+
+//   messagesList.scrollTop = messagesList.scrollHeight;
+// }
+// async function openConversation(conversationId, otherUser) {
+//   activeConversationId = conversationId;
+//   activeConversationUser = otherUser;
+
+//   if (activeChatName) activeChatName.textContent = otherUser;
+
+//   renderConversationList();
+//   openMessagesModal();
+
+//   const messages = await loadMessages(conversationId);
+//   renderMessages(messages);
+
+//   subscribeToMessages(conversationId);
+// }
+
+// // function subscribeToMessages(conversationId) {
+// //   if (messagesChannel) {
+// //     //supabase.removeChannel(messagesChannel);
+// //     messagesChannel = null;
+// //   }
+
+//   messagesChannel = supabase
+//     .channel("messages-live-" + conversationId)
+//     .on(
+//       "postgres_changes",
+//       {
+//         event: "*",
+//         schema: "public",
+//         table: "messages",
+//         filter: `conversation_id=eq.${conversationId}`
+//       },
+//       async () => {
+//         const messages = await loadMessages(conversationId);
+//         renderMessages(messages);
+//       }
+//     )
+//     .subscribe((status) => {
+//       console.log("Messages live status:", status);
+//     });
+// }
+// async function sendMessage() {
+//   if (!activeConversationId || !currentUser || !messageInput) return;
+
+//   const text = messageInput.value.trim();
+//   if (!text) return;
+
+//   const { error } = await supabase
+//     .from("messages")
+//     .insert({
+//       conversation_id: activeConversationId,
+//       sender: currentUser,
+//       text,
+//       created_at: Date.now(),
+//       read: false
+//     });
+
+//   if (error) {
+//     console.error("Could not send message:", error.message);
+//     alert("Could not send message.");
+//     return;
+//   }
+
+//   messageInput.value = "";
+// }
 
 function renderConversationList() {
   if (!conversationList) return;
-
   conversationList.innerHTML = "";
 
-  if (conversations.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "comment";
-    empty.textContent = "No messages yet.";
-    conversationList.appendChild(empty);
-    return;
-  }
-
-  conversations.forEach((conversation) => {
-    const otherUser =
-      conversation.user_a === currentUser
-        ? conversation.user_b
-        : conversation.user_a;
-
-    const div = document.createElement("div");
-    div.className =
-      "conversation-item" +
-      (String(conversation.id) === String(activeConversationId) ? " active" : "");
-    div.textContent = otherUser;
-
-    div.onclick = async function () {
-      await openConversation(conversation.id, otherUser);
-    };
-
-    conversationList.appendChild(div);
-  });
+  const empty = document.createElement("div");
+  empty.className = "comment";
+  empty.textContent = "Messages are disabled until converted to PocketBase.";
+  conversationList.appendChild(empty);
 }
 
-async function loadMessages(conversationId) {
-  const { data, error } = await supabase
-    .from("messages")
-    .select("*")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true });
-
-  if (error) {
-    console.error("Could not load messages:", error.message);
-    return [];
-  }
-
-  return data || [];
-}
-function renderMessages(messages) {
-  if (!messagesList) return;
-
-  messagesList.innerHTML = "";
-
-  if (messages.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "comment";
-    empty.textContent = "No messages yet. Start the chat!";
-    messagesList.appendChild(empty);
-    return;
-  }
-
-  messages.forEach((msg) => {
-    const div = document.createElement("div");
-    div.className =
-      "message-bubble " + (msg.sender === currentUser ? "mine" : "theirs");
-    div.textContent = msg.text;
-    messagesList.appendChild(div);
-  });
-
-  messagesList.scrollTop = messagesList.scrollHeight;
-}
-async function openConversation(conversationId, otherUser) {
-  activeConversationId = conversationId;
-  activeConversationUser = otherUser;
-
-  if (activeChatName) activeChatName.textContent = otherUser;
-
-  renderConversationList();
-  openMessagesModal();
-
-  const messages = await loadMessages(conversationId);
-  renderMessages(messages);
-
-  subscribeToMessages(conversationId);
-}
-
-function subscribeToMessages(conversationId) {
-  if (messagesChannel) {
-    supabase.removeChannel(messagesChannel);
-    messagesChannel = null;
-  }
-
-  messagesChannel = supabase
-    .channel("messages-live-" + conversationId)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "messages",
-        filter: `conversation_id=eq.${conversationId}`
-      },
-      async () => {
-        const messages = await loadMessages(conversationId);
-        renderMessages(messages);
-      }
-    )
-    .subscribe((status) => {
-      console.log("Messages live status:", status);
-    });
-}
 async function sendMessage() {
-  if (!activeConversationId || !currentUser || !messageInput) return;
-
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-  const { error } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: activeConversationId,
-      sender: currentUser,
-      text,
-      created_at: Date.now(),
-      read: false
-    });
-
-  if (error) {
-    console.error("Could not send message:", error.message);
-    alert("Could not send message.");
-    return;
-  }
-
-  messageInput.value = "";
+  alert("Messages are disabled until converted to PocketBase.");
+}
+function subscribeToPostChanges() {
+  pb.collection("posts").subscribe("*", async function () {
+    await loadPostsFromSupabase();
+  });
 }
 
-startApp(); 
+startApp();
