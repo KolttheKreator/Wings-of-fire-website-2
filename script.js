@@ -2,7 +2,7 @@
 console.log("script loaded");
 import PocketBase from "https://esm.sh/pocketbase";
 
-const pb = new PocketBase("http://127.0.0.1:8090");
+const pb = new PocketBase("https://dragon-pocketbase.onrender.com");
 const postsCacheKey = "dragon_posts_cache_v3";
 const postsRichCacheDbName = "dragon-rich-cache";
 const postsRichCacheStoreName = "app_cache";
